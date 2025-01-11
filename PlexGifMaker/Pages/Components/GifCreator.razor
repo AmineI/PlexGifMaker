@@ -1,4 +1,4 @@
-﻿@using SubtitlesParser.Classes
+@using SubtitlesParser.Classes
 @using System.Globalization
 @using PlexGifMaker.Data
 
@@ -52,7 +52,7 @@
     <input type="text" id="endSubtitleTime" value="@endSubtitleTimeString" @onchange="HandleEndSubtitleTimeChange" class="form-control" />
 </div>
 
-<button class="btn btn-primary mt-3" @onclick="OnCreateGifClicked" disabled="@IsCreatingGif">Create GIF</button>
+<button class="btn btn-primary mt-3" @onclick="OnCreateGifClicked" disabled="@IsCreatingGif">Create Clip</button>
 
 @if (IsExtracting)
 {
@@ -61,14 +61,15 @@
 
 @if (!string.IsNullOrEmpty(GifPath))
 {
-    <div>
-        <h3>Generated GIF:</h3>
-        <img src="@GifPath" class="img-fluid" alt="Generated GIF" />
-    </div>
+	<br>
+        <h3>Generated Clip:</h3>
+    <video controls style="width: 100%;">
+	<source src="@GifPath" type="video/mp4">
+	</video>
 }
 else if (IsCreatingGif)
 {
-    <LoadingSpinner Message="Creating GIF..." />
+    <LoadingSpinner Message="Creating Clip..." />
 }
 
 @code {
