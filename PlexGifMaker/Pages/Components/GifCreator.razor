@@ -1,4 +1,4 @@
-@using SubtitlesParser.Classes
+﻿@using SubtitlesParser.Classes
 @using System.Globalization
 @using PlexGifMaker.Data
 
@@ -21,9 +21,10 @@
         <label for="endSubtitle">End Subtitle: </label>
         <select class="form-control" id="endSubtitle" @onchange="HandleEndSubtitleChange">
             <option value="">Select an end subtitle</option>
-            @foreach (var subtitle in Subtitles)
+        @foreach (var subtitle in Subtitles)
             {
-                <option value="@subtitle.EndTime">@subtitle.ToString()</option>
+                <option value="@subtitle.EndTime" disabled="@(subtitle.StartTime < selectedStartSubtitleTime)">
+                    @subtitle.ToString()</option>
             }
         </select>
     </div>
