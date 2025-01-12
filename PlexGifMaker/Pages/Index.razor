@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 @page "/index"
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using PlexGifMaker.Data
@@ -95,7 +95,7 @@ else
         string? newGifPath;
         if (selectedSubtitleOptionKey != null)
         {
-            newGifPath = await PlexService.CreateGifFromSubtitlesAsync(selectedEpisode, times.startTime, times.endTime, selectedSubtitleOptionKey);
+            newGifPath = await PlexService.CreateGifFromSubtitlesAsync(selectedEpisode, times.startTime, times.endTime, subtitleOptions.FirstOrDefault(sub => sub?.Key == selectedSubtitleOptionKey));
         }
         else
         {
@@ -393,11 +393,11 @@ else
                     {
                         isExtracting = true;
                         StateHasChanged();
-                        subtitles = await PlexService.ExtractSubtitles(selectedEpisode, index);
+                        subtitles = await PlexService.ExtractSubtitles(selectedEpisode, subtitleOptions.FirstOrDefault(sub => sub?.Key == selectedSubtitleOptionKey));
                     }
                     else if (selectedSubtitleOptionKey != null)
                     {
-                        subtitles = await PlexService.GetActualSubtitlesAsync(selectedEpisode, selectedSubtitleOptionKey);
+                        subtitles = await PlexService.GetActualSubtitlesAsync(selectedEpisode, subtitleOptions.FirstOrDefault(sub => sub?.Key == selectedSubtitleOptionKey));
                     }
 
                     totalDuration = await PlexService.GetEpisodeDurationAsync(selectedEpisode);
