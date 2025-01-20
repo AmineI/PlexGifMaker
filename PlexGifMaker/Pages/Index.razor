@@ -1,4 +1,4 @@
-@page "/"
+﻿@page "/"
 @page "/index"
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using PlexGifMaker.Data
@@ -110,18 +110,18 @@ else
 
             // Ensure the gifPath starts with a forward slash
             gifPath = newGifPath.StartsWith("/") ? newGifPath : "/" + newGifPath;
-            _logger.LogInformation($"Final GIF Path for display: {gifPath}");
+            _logger.LogInformation($"Final Clip Path for display: {gifPath}");
         }
         else
         {
-            errorMessage = "Failed to generate GIF. The service returned an empty path.";
-            _logger.LogWarning("GIF creation failed. Empty path returned from service.");
+            errorMessage = "Failed to generate Clip. The service returned an empty path.";
+            _logger.LogWarning("Clip creation failed. Empty path returned from service.");
         }
     }
     catch (Exception ex)
     {
-        _logger.LogError(ex, "Error creating GIF");
-        errorMessage = "An error occurred while creating the GIF. Please try again.";
+        _logger.LogError(ex, "Error creating Clip");
+        errorMessage = "An error occurred while creating the Clip. Please try again.";
         gifPath = null;
     }
     finally
@@ -393,11 +393,11 @@ else
                     {
                         isExtracting = true;
                         StateHasChanged();
-                        subtitles = await PlexService.ExtractSubtitles(selectedEpisode, subtitleOptions.FirstOrDefault(sub => sub?.Key == selectedSubtitleOptionKey));
+                        subtitles = await PlexService.ExtractSubtitles(selectedEpisode, subtitleOptions?.FirstOrDefault(sub => sub?.Key == selectedSubtitleOptionKey));
                     }
                     else if (selectedSubtitleOptionKey != null)
                     {
-                        subtitles = await PlexService.GetActualSubtitlesAsync(selectedEpisode, subtitleOptions.FirstOrDefault(sub => sub?.Key == selectedSubtitleOptionKey));
+                        subtitles = await PlexService.GetActualSubtitlesAsync(selectedEpisode, subtitleOptions?.FirstOrDefault(sub => sub?.Key == selectedSubtitleOptionKey));
                     }
 
                     totalDuration = await PlexService.GetEpisodeDurationAsync(selectedEpisode);
