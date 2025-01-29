@@ -1,5 +1,5 @@
 # Use the official ASP.NET Core runtime as a parent image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
 EXPOSE 8080
 
@@ -22,7 +22,7 @@ RUN mkdir -p /usr/shared/plexgifmaker_keys "/app/subtitles" "/app/logs" "/app/ww
     chown -R plexgifmaker:plexgifmaker /app/wwwroot/gifs
 
 # Use the .NET SDK image to build the project
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY ["PlexGifMaker/PlexGifMaker.csproj", "./"]
 RUN dotnet restore "PlexGifMaker.csproj"
