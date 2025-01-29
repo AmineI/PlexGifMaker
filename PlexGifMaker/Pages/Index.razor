@@ -76,7 +76,7 @@ else
 
         private GifCreator? gifCreatorRef;
 
-   private async Task CreateGif((int startTime, int endTime) times)
+   private async Task CreateGif((int startTime, int endTime, string format) times)
 {
     if (string.IsNullOrEmpty(selectedEpisode))
     {
@@ -95,11 +95,11 @@ else
         string? newGifPath;
         if (selectedSubtitleOptionKey != null)
         {
-            newGifPath = await PlexService.CreateGifFromSubtitlesAsync(selectedEpisode, times.startTime, times.endTime, subtitleOptions.FirstOrDefault(sub => sub?.Key == selectedSubtitleOptionKey));
+            newGifPath = await PlexService.CreateGifFromSubtitlesAsync(selectedEpisode, times.startTime, times.endTime, times.format, subtitleOptions.FirstOrDefault(sub => sub?.Key == selectedSubtitleOptionKey));
         }
         else
         {
-            newGifPath = await PlexService.CreateGifFromSubtitlesAsync(selectedEpisode, times.startTime, times.endTime);
+            newGifPath = await PlexService.CreateGifFromSubtitlesAsync(selectedEpisode, times.startTime, times.endTime,times.format);
         }
 
         if (!string.IsNullOrEmpty(newGifPath))

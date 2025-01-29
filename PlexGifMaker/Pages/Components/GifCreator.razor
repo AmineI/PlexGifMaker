@@ -4,6 +4,14 @@
 
 @namespace PlexGifMaker.Data
 
+<div class="form-group">
+    <label for="outputFormat">Output Format: </label>
+    <select class="form-control" id="outputFormat" @onchange="HandleOutputFormatChange">
+        <option value="mp4">MP4</option>
+        <option value="gif">GIF</option>
+    </select>
+</div>
+
 @if (SelectedEpisode != null && Subtitles != null && Subtitles.Any())
 {
     <div class="form-group">
@@ -62,11 +70,18 @@
 
 @if (!string.IsNullOrEmpty(GifPath))
 {
+    @if (SelectedFormat == "gif")
+    {
+        <img src="@GifPath" class="img-fluid" alt="Generated GIF" style="width: 100%;" />
+    }
+    else
+    {
 	<br>
         <h3>Generated Clip:</h3>
     <video controls style="width: 100%;">
 	<source src="@GifPath" type="video/mp4">
 	</video>
+    }
 }
 else if (IsCreatingGif)
 {
@@ -84,7 +99,10 @@ else if (IsCreatingGif)
     public TimeSpan TotalDuration { get; set; }
 
     [Parameter]
-    public EventCallback<(int startTime, int endTime)> OnCreateGif { get; set; }
+    public string SelectedFormat { get; set; } = "mp4";
+
+    [Parameter]
+    public EventCallback<(int startTime, int endTime, string format)> OnCreateGif { get; set; }
 
     [Parameter]
     public bool IsCreatingGif { get; set; }
@@ -143,7 +161,7 @@ else if (IsCreatingGif)
 
     private async Task OnCreateGifClicked()
     {
-        await OnCreateGif.InvokeAsync((selectedStartSubtitleTime, selectedEndSubtitleTime));
+        await OnCreateGif.InvokeAsync((selectedStartSubtitleTime, selectedEndSubtitleTime, SelectedFormat));
     }
 
     private void HandleStartSubtitleChange(ChangeEventArgs e)
@@ -180,6 +198,11 @@ else if (IsCreatingGif)
             selectedEndSubtitleTime = (int)time.TotalMilliseconds;
             endSubtitleTimeString = FormatTimeSpanAsString(time);
         }
+    }
+
+    private void HandleOutputFormatChange(ChangeEventArgs e)
+    {
+        SelectedFormat = e?.Value?.ToString() ?? "mp4";
     }
 
     private string FormatTimeSpanAsString(TimeSpan timeSpan)

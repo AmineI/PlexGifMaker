@@ -304,7 +304,7 @@ namespace PlexGifMaker.Data
             }
         }
 
-        public async Task<string?> CreateGifFromSubtitlesAsync(string episodeId, int startSubtitleTime, int endSubtitleTime, Subtitle? subtitle = null)
+        public async Task<string?> CreateGifFromSubtitlesAsync(string episodeId, int startSubtitleTime, int endSubtitleTime, string format, Subtitle? subtitle = null)
         {
             var startTime = TimeSpan.FromMilliseconds(startSubtitleTime);
             var endTime = TimeSpan.FromMilliseconds(endSubtitleTime);
@@ -361,7 +361,7 @@ namespace PlexGifMaker.Data
             }
             string videoFile = $"{_baseUri}{key}?X-Plex-Token={_token}";
 
-            var outputPath = await GenerateGifAsync(videoFile, subtitle, startTime, duration, episodeId);
+            var outputPath = await GenerateGifAsync(videoFile, subtitle, startTime, duration, episodeId, format);
             if (outputPath != null)
             {
                 // Convert the full path to a relative path
@@ -399,7 +399,7 @@ namespace PlexGifMaker.Data
             }
         }
 
-        private async Task<string?> GenerateGifAsync(string videoFile, Subtitle subtitle, TimeSpan startTime, TimeSpan duration, string episodeId)
+        private async Task<string?> GenerateGifAsync(string videoFile, Subtitle subtitle, TimeSpan startTime, TimeSpan duration, string episodeId, string format)
         {
             var formattedStartTime = startTime.ToString(@"hh\hmm\mss\sfff\ms").Replace(":", "");
             var index = 0;
@@ -408,21 +408,21 @@ namespace PlexGifMaker.Data
                 index = i;
             }
             var formattedEndTime = (startTime + duration).ToString(@"hh\hmm\mss\sfff\ms").Replace(":", "");
-            var outputPath = Path.Combine("wwwroot", "gifs", $"{episodeId}_{formattedStartTime}_to_{formattedEndTime}.mp4");
+            var outputPath = Path.Combine("wwwroot", "gifs", $"{episodeId}_{formattedStartTime}_to_{formattedEndTime}.{format}");
             outputPath = EnsureUniqueFilename(outputPath);
 
-            string filters;
+            string subtitles;
             var subtitleFile = Path.Combine(subtitlePath, $"subtitle.{subtitle.Codec}");
             if (File.Exists(subtitleFile)){
                 if (imageBasedSubtitleFormats.Contains(subtitle.Codec ?? "srt"))
                 {
                     //TODO
                     string subtitleStream = $"[0:v][0:s:{index}]overlay[v]";
-                    filters = $"{subtitleStream}";
+                    subtitles = $"{subtitleStream}";
                 }
                 else
                 {
-                    filters = $"[0:v]subtitles='{subtitleFile.Replace("\\", "\\\\")}'[v]";
+                    subtitles = $"subtitles='{subtitleFile.Replace("\\", "\\\\")}'{(format == "gif" ? ":force_style='Fontsize=24'" : "")}[v]";                
                 }
             }
             else
@@ -430,7 +430,11 @@ namespace PlexGifMaker.Data
                 throw new FileNotFoundException("No supported subtitle file found.");
             }
 
-            var ffmpegCommand = $"-report -v debug -i \"{videoFile}\" -ss {startTime} -t {duration} -lavfi \"{filters}\" -map [v] -map 0:a -c:a copy -c:v libx264 -pix_fmt yuv420p \"{outputPath}\"";
+            var ffmpegCommand = $"-report -v debug -i \"{videoFile}\" -ss {startTime} -t {duration} -lavfi \"{subtitles}\" -map [v] -map 0:a -c:a copy -c:v libx264 -pix_fmt yuv420p \"{outputPath}\"";
+            if (format == "gif")
+            {
+                ffmpegCommand = $"-report -v debug -i \"{videoFile}\" -ss {startTime} -t {duration} -lavfi \"fps=20,scale=400:-1:flags=lanczos,{subtitles}\" -map [v] -c:v gif \"{outputPath}\"";
+            }
             _logger.LogInformation("Executing FFmpeg command: {FfmpegCommand}", ffmpegCommand);
 
             using (var process = new Process())
