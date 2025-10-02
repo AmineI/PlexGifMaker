@@ -422,7 +422,7 @@ namespace PlexGifMaker.Data
                 }
                 else
                 {
-                    subtitles = $"subtitles='{subtitleFile.Replace("\\", "\\\\")}'{(format == "gif" ? ":force_style='Fontsize=48'" : "")}";                
+                    subtitles = $"subtitles='{subtitleFile.Replace("\\", "\\\\")}'{(format == "gif" ? ":force_style='Fontsize=38'" : "")}";                
                 }
             }
             else
@@ -430,7 +430,7 @@ namespace PlexGifMaker.Data
                 throw new FileNotFoundException("No supported subtitle file found.");
             }
 
-            var ffmpegCommand = $"-report -v debug -ss {startTime} -t {duration} -i \"{videoFile}\" -lavfi \"{subtitles}[v]\" -map [v] -map 0:a -c:a copy -c:v libx264 -pix_fmt yuv420p \"{outputPath}\"";
+            var ffmpegCommand = $"-report -v debug -ss {startTime} -t {duration} -i \"{videoFile}\" -lavfi \"{subtitles}[v]\" -map [v] -map 0:a? -c:a copy -c:v libx264 -pix_fmt yuv420p -copyts -avoid_negative_ts make_zero -max_muxing_queue_size 1024 \"{outputPath}\"";
             if (format == "gif")
             {
                 // Use two-pass approach with palette generation for better gif color quality
