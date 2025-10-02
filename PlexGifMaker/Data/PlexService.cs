@@ -417,12 +417,12 @@ namespace PlexGifMaker.Data
                 if (imageBasedSubtitleFormats.Contains(subtitle.Codec ?? "srt"))
                 {
                     //TODO
-                    string subtitleStream = $"[0:v][0:s:{index}]overlay[v]";
+                    string subtitleStream = $"[0:v][0:s:{index}]overlay";
                     subtitles = $"{subtitleStream}";
                 }
                 else
                 {
-                    subtitles = $"subtitles='{subtitleFile.Replace("\\", "\\\\")}'{(format == "gif" ? ":force_style='Fontsize=24'" : "")}[v]";                
+                    subtitles = $"subtitles='{subtitleFile.Replace("\\", "\\\\")}'{(format == "gif" ? ":force_style='Fontsize=48'" : "")}";                
                 }
             }
             else
@@ -430,10 +430,11 @@ namespace PlexGifMaker.Data
                 throw new FileNotFoundException("No supported subtitle file found.");
             }
 
-            var ffmpegCommand = $"-report -v debug -ss {startTime} -t {duration} -i \"{videoFile}\" -lavfi \"{subtitles}\" -map [v] -map 0:a -c:a copy -c:v libx264 -pix_fmt yuv420p \"{outputPath}\"";
+            var ffmpegCommand = $"-report -v debug -ss {startTime} -t {duration} -i \"{videoFile}\" -lavfi \"{subtitles}[v]\" -map [v] -map 0:a -c:a copy -c:v libx264 -pix_fmt yuv420p \"{outputPath}\"";
             if (format == "gif")
             {
-                ffmpegCommand = $"-report -v debug -ss {startTime} -t {duration} -i \"{videoFile}\" -lavfi \"fps=20,scale=400:-1:flags=lanczos,{subtitles}\" -map [v] -c:v gif \"{outputPath}\"";
+                // Use two-pass approach with palette generation for better gif color quality
+                ffmpegCommand = $"-report -v debug -ss {startTime} -t {duration} -i \"{videoFile}\" -lavfi \"fps=20,scale=400:-1:flags=lanczos,{subtitles},split[s0][s1];[s0]palettegen=max_colors=256:stats_mode=full[p];[s1][p]paletteuse=dither=floyd_steinberg:diff_mode=rectangle\" \"{outputPath}\"";
             }
             _logger.LogInformation("Executing FFmpeg command: {FfmpegCommand}", ffmpegCommand);
 
