@@ -2,7 +2,7 @@
 
 <div class="form-group">
     <label for="subtitle">Subtitle Stream: </label>
-    <select class="form-control" id="subtitle" @onchange="OnSelectedSubtitleChanged">
+    <select class="form-control" id="subtitle" value="@SelectedValue" @onchange="OnSelectedSubtitleChanged">
         <option value="">Select a subtitle</option>
         @foreach (var subtitle in SubtitleOptions.Select((value, index) => new { Value = value, Index = index }))
         {
@@ -16,6 +16,9 @@
 @code {
     [Parameter]
     public List<Subtitle?> SubtitleOptions { get; set; } = new List<Subtitle?>();
+
+    [Parameter]
+    public string? SelectedValue { get; set; }
 
     [Parameter]
     public EventCallback<string> OnSubtitleSelected { get; set; }

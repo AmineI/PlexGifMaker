@@ -92,5 +92,63 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
             Assert.True(subtitles.Count > 0);
             PlexServiceTestsHelpers.VerifyMockHttpMessageHandler(handlerMock, expectedUri.ToString());
         }
+
+        [Fact]
+        public async Task GetCurrentlyPlayingMediaAsync_ReturnsCurrentlyPlayingMedia()
+        {
+            // Arrange
+            var baseUri = "http://test.com";
+            var token = "3TcQZEzVWANSs1gs_sXs";
+            var expectedUri = $"{baseUri}/status/sessions?X-Plex-Token={token}";
+
+            var handlerMock = PlexServiceTestsHelpers.SetupMockHttpMessageHandler(PlexServiceTestsHelpers.SessionsContent, HttpStatusCode.OK);
+            var httpClientFactoryMock = PlexServiceTestsHelpers.SetupMockHttpClientFactory(handlerMock);
+            var loggerMock = new Mock<ILogger<PlexService>>();
+            var service = new PlexService(httpClientFactoryMock.Object, loggerMock.Object);
+
+            // Set the configuration
+            service.SetConfiguration(baseUri, token);
+
+            // Act
+            var currentlyPlaying = await service.GetCurrentlyPlayingMediaAsync();
+
+            // Assert
+            Assert.NotNull(currentlyPlaying);
+            Assert.Equal("8407", currentlyPlaying.EpisodeId);
+            Assert.Equal("Part 1", currentlyPlaying.EpisodeTitle);
+            Assert.Equal("episode", currentlyPlaying.MediaType);
+            Assert.Equal("2", currentlyPlaying.LibraryId);
+            Assert.Equal("8405", currentlyPlaying.ShowId);
+            Assert.Equal("The 10th Kingdom", currentlyPlaying.ShowTitle);
+
+            // Verify the correct URL was called
+            PlexServiceTestsHelpers.VerifyMockHttpMessageHandler(handlerMock, expectedUri);
+        }
+
+        [Fact]
+        public async Task GetCurrentlyPlayingMediaAsync_ReturnsNullWhenNoMediaPlaying()
+        {
+            // Arrange
+            var baseUri = "http://test.com";
+            var token = "3TcQZEzVWANSs1gs_sXs";
+            var expectedUri = $"{baseUri}/status/sessions?X-Plex-Token={token}";
+
+            var handlerMock = PlexServiceTestsHelpers.SetupMockHttpMessageHandler(PlexServiceTestsHelpers.EmptySessionsContent, HttpStatusCode.OK);
+            var httpClientFactoryMock = PlexServiceTestsHelpers.SetupMockHttpClientFactory(handlerMock);
+            var loggerMock = new Mock<ILogger<PlexService>>();
+            var service = new PlexService(httpClientFactoryMock.Object, loggerMock.Object);
+
+            // Set the configuration
+            service.SetConfiguration(baseUri, token);
+
+            // Act
+            var currentlyPlaying = await service.GetCurrentlyPlayingMediaAsync();
+
+            // Assert
+            Assert.Null(currentlyPlaying);
+
+            // Verify the correct URL was called
+            PlexServiceTestsHelpers.VerifyMockHttpMessageHandler(handlerMock, expectedUri);
+        }
     }
 }

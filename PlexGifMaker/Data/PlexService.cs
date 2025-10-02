@@ -791,6 +791,79 @@ namespace PlexGifMaker.Data
                 return false;
             }
         }
+
+        public async Task<CurrentlyPlayingMedia?> GetCurrentlyPlayingMediaAsync()
+        {
+            var client = _httpClientFactory.CreateClient();
+            var requestUri = $"{_baseUri}/status/sessions?X-Plex-Token={_token}";
+
+            try
+            {
+                var response = await client.GetAsync(requestUri);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var doc = new XmlDocument();
+                    doc.LoadXml(content);
+
+                    var videoNode = doc.SelectSingleNode("//Video");
+                    if (videoNode != null)
+                    {
+                        var ratingKey = videoNode.Attributes?["ratingKey"]?.Value;
+                        var title = videoNode.Attributes?["title"]?.Value;
+                        var type = videoNode.Attributes?["type"]?.Value;
+                        var librarySectionID = videoNode.Attributes?["librarySectionID"]?.Value;
+                        var grandparentRatingKey = videoNode.Attributes?["grandparentRatingKey"]?.Value;
+                        var grandparentTitle = videoNode.Attributes?["grandparentTitle"]?.Value;
+                        var viewOffsetStr = videoNode.Attributes?["viewOffset"]?.Value;
+
+                        if (!string.IsNullOrEmpty(ratingKey))
+                        {
+                            int viewOffset = 0;
+                            if (!string.IsNullOrEmpty(viewOffsetStr) && int.TryParse(viewOffsetStr, out var parsedOffset))
+                            {
+                                viewOffset = parsedOffset;
+                            }
+
+                            return new CurrentlyPlayingMedia
+                            {
+                                EpisodeId = ratingKey,
+                                EpisodeTitle = title,
+                                MediaType = type,
+                                LibraryId = librarySectionID,
+                                ShowId = grandparentRatingKey,
+                                ShowTitle = grandparentTitle,
+                                ViewOffset = viewOffset
+                            };
+                        }
+                    }
+
+                    _logger.LogInformation("No currently playing media found.");
+                    return null;
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    _logger.LogWarning("Unauthorized access attempt. Token may be invalid or expired.");
+                    throw new UnauthorizedAccessException("Unable to access Plex sessions. Your session may have expired or you may not have the necessary permissions.");
+                }
+                else
+                {
+                    _logger.LogError("Failed to fetch currently playing sessions. Status code: {StatusCode}", response.StatusCode);
+                    return null;
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP request error while fetching currently playing media");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error while fetching currently playing media");
+                throw;
+            }
+        }
     }
 
     public class Library
@@ -823,5 +896,16 @@ namespace PlexGifMaker.Data
         SRT,
         ASS,
         // Add more codecs as needed
+    }
+
+    public class CurrentlyPlayingMedia
+    {
+        public string? EpisodeId { get; set; }
+        public string? EpisodeTitle { get; set; }
+        public string? MediaType { get; set; }
+        public string? LibraryId { get; set; }
+        public string? ShowId { get; set; }
+        public string? ShowTitle { get; set; }
+        public int ViewOffset { get; set; } // Current playback position in milliseconds
     }
 }
