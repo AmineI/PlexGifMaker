@@ -430,10 +430,10 @@ namespace PlexGifMaker.Data
                 throw new FileNotFoundException("No supported subtitle file found.");
             }
 
-            var ffmpegCommand = $"-report -v debug -i \"{videoFile}\" -ss {startTime} -t {duration} -lavfi \"{subtitles}\" -map [v] -map 0:a -c:a copy -c:v libx264 -pix_fmt yuv420p \"{outputPath}\"";
+            var ffmpegCommand = $"-report -v debug -ss {startTime} -t {duration} -i \"{videoFile}\" -lavfi \"{subtitles}\" -map [v] -map 0:a -c:a copy -c:v libx264 -pix_fmt yuv420p \"{outputPath}\"";
             if (format == "gif")
             {
-                ffmpegCommand = $"-report -v debug -i \"{videoFile}\" -ss {startTime} -t {duration} -lavfi \"fps=20,scale=400:-1:flags=lanczos,{subtitles}\" -map [v] -c:v gif \"{outputPath}\"";
+                ffmpegCommand = $"-report -v debug -ss {startTime} -t {duration} -i \"{videoFile}\" -lavfi \"fps=20,scale=400:-1:flags=lanczos,{subtitles}\" -map [v] -c:v gif \"{outputPath}\"";
             }
             _logger.LogInformation("Executing FFmpeg command: {FfmpegCommand}", ffmpegCommand);
 
