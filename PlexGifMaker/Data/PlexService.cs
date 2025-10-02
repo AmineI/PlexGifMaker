@@ -816,9 +816,16 @@ namespace PlexGifMaker.Data
                         var librarySectionID = videoNode.Attributes?["librarySectionID"]?.Value;
                         var grandparentRatingKey = videoNode.Attributes?["grandparentRatingKey"]?.Value;
                         var grandparentTitle = videoNode.Attributes?["grandparentTitle"]?.Value;
+                        var viewOffsetStr = videoNode.Attributes?["viewOffset"]?.Value;
 
                         if (!string.IsNullOrEmpty(ratingKey))
                         {
+                            int viewOffset = 0;
+                            if (!string.IsNullOrEmpty(viewOffsetStr) && int.TryParse(viewOffsetStr, out var parsedOffset))
+                            {
+                                viewOffset = parsedOffset;
+                            }
+
                             return new CurrentlyPlayingMedia
                             {
                                 EpisodeId = ratingKey,
@@ -826,7 +833,8 @@ namespace PlexGifMaker.Data
                                 MediaType = type,
                                 LibraryId = librarySectionID,
                                 ShowId = grandparentRatingKey,
-                                ShowTitle = grandparentTitle
+                                ShowTitle = grandparentTitle,
+                                ViewOffset = viewOffset
                             };
                         }
                     }
@@ -898,5 +906,6 @@ namespace PlexGifMaker.Data
         public string? LibraryId { get; set; }
         public string? ShowId { get; set; }
         public string? ShowTitle { get; set; }
+        public int ViewOffset { get; set; } // Current playback position in milliseconds
     }
 }

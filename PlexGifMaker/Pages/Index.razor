@@ -496,6 +496,20 @@ else
                 {
                     selectedEpisode = currentlyPlaying.EpisodeId;
                     await HandleEpisodeChange(selectedEpisode);
+                    await Task.Delay(100); // Small delay to allow state to update
+                }
+
+
+                // Set the subtitle times based on current playback position
+                if (currentlyPlaying.ViewOffset > 0 && gifCreatorRef != null)
+                {
+                    // Calculate start time: current position minus 10 seconds (10000 ms)
+                    int startTime = Math.Max(0, currentlyPlaying.ViewOffset - 10000);
+                    // Set end time to current position
+                    int endTime = currentlyPlaying.ViewOffset;
+                    
+                    _logger.LogInformation("Setting subtitle times: Start={StartTime}ms, End={EndTime}ms", startTime, endTime);
+                    gifCreatorRef.SetSubtitleTimes(startTime, endTime);
                 }
 
                 successMessage = $"Successfully auto-detected: {currentlyPlaying.EpisodeTitle ?? "media"}";
