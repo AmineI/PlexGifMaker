@@ -69,6 +69,17 @@ internal static class PlexServiceTestsHelpers
 </Directory>
 </MediaContainer>
 ";
+    public const string SessionsContent = @"<?xml version=""1.0"" encoding=""UTF-8""?>
+<MediaContainer size=""1"">
+<Video ratingKey=""8407"" key=""/library/metadata/8407"" parentRatingKey=""8406"" grandparentRatingKey=""8405"" type=""episode"" title=""Part 1"" grandparentKey=""/library/metadata/8405"" parentKey=""/library/metadata/8406"" librarySectionTitle=""TV Shows"" librarySectionID=""2"" grandparentTitle=""The 10th Kingdom"" parentTitle=""Season 1"" contentRating=""TV-PG"" duration=""5368532"">
+<User id=""1"" title=""testuser"" />
+<Player local=""1"" publicAddress=""192.168.1.100"" title=""Chrome"" />
+<Session id=""session1"" />
+</Video>
+</MediaContainer>";
+    public const string EmptySessionsContent = @"<?xml version=""1.0"" encoding=""UTF-8""?>
+<MediaContainer size=""0"">
+</MediaContainer>";
     public const string Content2 = @"<MediaContainer size=""1"" allowSync=""1"" identifier=""com.plexapp.plugins.library"" librarySectionID=""2"" librarySectionTitle=""TV Shows"" librarySectionUUID=""ca22bbb6-386c-45e1-80bf-0c7ceb723f32"" mediaTagPrefix=""/system/bundle/media/flags/"" mediaTagVersion=""1698860922"">
 <script/>
 <Video ratingKey=""8407"" key=""/library/metadata/8407"" parentRatingKey=""8406"" grandparentRatingKey=""8405"" guid=""com.plexapp.agents.thetvdb://78886/1/1?lang=en"" parentGuid=""com.plexapp.agents.thetvdb://78886/1?lang=en"" grandparentGuid=""com.plexapp.agents.thetvdb://78886?lang=en"" type=""episode"" title=""Part 1"" grandparentKey=""/library/metadata/8405"" parentKey=""/library/metadata/8406"" librarySectionTitle=""TV Shows"" librarySectionID=""2"" librarySectionKey=""/library/sections/2"" grandparentTitle=""The 10th Kingdom"" parentTitle=""Season 1"" contentRating=""TV-PG"" summary=""Thanks to Relish the Troll King, the Evil Queen is once again free, and she has a trap ready for Prince Wendell. Her dog transforms into Prince Wendell and Prince Wendell becomes a dog. While trying to escape, the real Prince Wendell accidentally turns on a magic mirror, and runs away into 10th kingdom. Virginia hits him with her bicycle, feeling bad about hitting a dog; she takes him to work with her. Wolf and Relish the Troll Kings kids are after the real Prince, and they are looking all over New York for him."" index=""1"" parentIndex=""1"" viewCount=""1"" skipCount=""1"" lastViewedAt=""1670296206"" year=""2000"" thumb=""/library/metadata/8407/thumb/1720143370"" art=""/library/metadata/8405/art/1711547700"" parentThumb=""/library/metadata/8406/thumb/1711464916"" grandparentThumb=""/library/metadata/8405/thumb/1711547700"" grandparentArt=""/library/metadata/8405/art/1711547700"" grandparentTheme=""/library/metadata/8405/theme/1711547700"" duration=""5368532"" originallyAvailableAt=""2000-02-27"" addedAt=""1669931876"" updatedAt=""1720143370"" audienceRatingImage=""themoviedb://image.rating"" chapterSource=""media"">

@@ -19,12 +19,31 @@
     <div class="alert alert-danger">@errorMessage</div>
 }
 
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
 @if (isLoading)
 {
     <LoadingSpinner />
 }
 else
 {
+    <div class="mb-3">
+        <button class="btn btn-success" @onclick="AutoDetectCurrentlyPlaying" disabled="@isAutoDetecting">
+            @if (isAutoDetecting)
+            {
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                <span> Detecting...</span>
+            }
+            else
+            {
+                <span>🎬 Auto-Detect Currently Playing</span>
+            }
+        </button>
+    </div>
+
     <LibrarySelector Libraries="libraries" OnLibrarySelected="@HandleLibraryChange" />
 
     @if (shows != null && shows.Any())
@@ -69,10 +88,12 @@ else
         private bool isCreatingGif = false;
         private bool isExtracting = false;
         private string? errorMessage;
+        private string? successMessage;
         private TimeSpan totalDuration;
         float totalDurationInSeconds;
         private bool subsFound = true;
         private List<Subtitle?>? subtitleOptions;
+        private bool isAutoDetecting = false;
 
         private GifCreator? gifCreatorRef;
 
@@ -430,6 +451,70 @@ else
             {
                 _logger.LogWarning("Selected episode is null or empty.");
                 errorMessage = "Please select an episode before fetching subtitles.";
+            }
+        }
+
+        private async Task AutoDetectCurrentlyPlaying()
+        {
+            isAutoDetecting = true;
+            errorMessage = null;
+            successMessage = null;
+            StateHasChanged();
+
+            try
+            {
+                var currentlyPlaying = await PlexService.GetCurrentlyPlayingMediaAsync();
+
+                if (currentlyPlaying == null)
+                {
+                    errorMessage = "No media is currently playing on your Plex server.";
+                    _logger.LogInformation("No currently playing media detected.");
+                    return;
+                }
+
+                _logger.LogInformation("Detected currently playing media: {Title} (ID: {Id})", 
+                    currentlyPlaying.EpisodeTitle, currentlyPlaying.EpisodeId);
+
+                // Set the library
+                if (!string.IsNullOrEmpty(currentlyPlaying.LibraryId))
+                {
+                    selectedLibraryKey = currentlyPlaying.LibraryId;
+                    await HandleLibraryChange(selectedLibraryKey);
+                    await Task.Delay(100); // Small delay to allow state to update
+                }
+
+                // For TV shows, set the show
+                if (!string.IsNullOrEmpty(currentlyPlaying.ShowId) && currentlyPlaying.MediaType == "episode")
+                {
+                    selectedShowKey = currentlyPlaying.ShowId;
+                    await HandleShowChange(selectedShowKey);
+                    await Task.Delay(100); // Small delay to allow state to update
+                }
+
+                // Set the episode
+                if (!string.IsNullOrEmpty(currentlyPlaying.EpisodeId))
+                {
+                    selectedEpisode = currentlyPlaying.EpisodeId;
+                    await HandleEpisodeChange(selectedEpisode);
+                }
+
+                successMessage = $"Successfully auto-detected: {currentlyPlaying.EpisodeTitle ?? "media"}";
+                _logger.LogInformation("Successfully prefilled form with currently playing media.");
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                errorMessage = ex.Message;
+                _logger.LogWarning("Unauthorized access when detecting currently playing media.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error auto-detecting currently playing media");
+                errorMessage = "An error occurred while detecting currently playing media. Please try again.";
+            }
+            finally
+            {
+                isAutoDetecting = false;
+                StateHasChanged();
             }
         }
 }
