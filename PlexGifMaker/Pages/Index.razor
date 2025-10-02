@@ -44,21 +44,21 @@ else
         </button>
     </div>
 
-    <LibrarySelector Libraries="libraries" OnLibrarySelected="@HandleLibraryChange" />
+    <LibrarySelector Libraries="libraries" SelectedValue="@selectedLibraryKey" OnLibrarySelected="@HandleLibraryChange" />
 
     @if (shows != null && shows.Any())
     {
-        <ShowSelector Shows="shows" OnShowSelected="@HandleShowChange" />
+        <ShowSelector Shows="shows" SelectedValue="@selectedShowKey" OnShowSelected="@HandleShowChange" />
     }
 
     @if (episodes != null && episodes.Any())
     {
-        <EpisodeSelector Episodes="episodes" OnEpisodeSelected="@HandleEpisodeChange" />
+        <EpisodeSelector Episodes="episodes" SelectedValue="@selectedEpisode" OnEpisodeSelected="@HandleEpisodeChange" />
     }
 
     @if (subtitleOptions != null && subtitleOptions.Any())
     {
-        <SubtitleSelector SubtitleOptions="subtitleOptions" OnSubtitleSelected="@HandleSubtitleOptionChange" />
+        <SubtitleSelector SubtitleOptions="subtitleOptions" SelectedValue="@selectedSubtitleOptionKey" OnSubtitleSelected="@HandleSubtitleOptionChange" />
     }
 
     @if (!string.IsNullOrEmpty(selectedEpisode) || !subsFound)

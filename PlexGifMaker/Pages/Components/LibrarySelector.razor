@@ -2,7 +2,7 @@
 
 <div class="form-group">
     <label for="library">Library: </label>
-    <select class="form-control" id="library" @onchange="OnSelectedLibraryChanged">
+    <select class="form-control" id="library" value="@SelectedValue" @onchange="OnSelectedLibraryChanged">
         <option value="">Select a library</option>
         @if (Libraries != null)
         {
@@ -17,6 +17,9 @@
 @code {
     [Parameter]
     public List<Library>? Libraries { get; set; }
+
+    [Parameter]
+    public string? SelectedValue { get; set; }
 
     [Parameter]
     public EventCallback<string> OnLibrarySelected { get; set; }

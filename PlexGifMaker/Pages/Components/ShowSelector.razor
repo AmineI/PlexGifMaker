@@ -2,7 +2,7 @@
 
 <div class="form-group">
     <label for="show">TV Show: </label>
-    <select class="form-control" id="show" @onchange="OnSelectedShowChanged">
+    <select class="form-control" id="show" value="@SelectedValue" @onchange="OnSelectedShowChanged">
         <option value="">Select a TV show</option>
         @foreach (var show in Shows)
         {
@@ -14,6 +14,9 @@
 @code {
     [Parameter]
     public List<Episode> Shows { get; set; } = new List<Episode>();
+
+    [Parameter]
+    public string? SelectedValue { get; set; }
 
     [Parameter]
     public EventCallback<string> OnShowSelected { get; set; }
