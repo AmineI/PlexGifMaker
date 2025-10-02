@@ -799,6 +799,9 @@ namespace PlexGifMaker.Data
 
             try
             {
+                // First, get the current user's ID from the token
+                var currentUserId = await GetCurrentUserIdAsync();
+
                 var response = await client.GetAsync(requestUri);
 
                 if (response.IsSuccessStatusCode)
@@ -807,35 +810,72 @@ namespace PlexGifMaker.Data
                     var doc = new XmlDocument();
                     doc.LoadXml(content);
 
-                    var videoNode = doc.SelectSingleNode("//Video");
-                    if (videoNode != null)
+                    var videoNodes = doc.SelectNodes("//Video");
+                    if (videoNodes != null && videoNodes.Count > 0)
                     {
-                        var ratingKey = videoNode.Attributes?["ratingKey"]?.Value;
-                        var title = videoNode.Attributes?["title"]?.Value;
-                        var type = videoNode.Attributes?["type"]?.Value;
-                        var librarySectionID = videoNode.Attributes?["librarySectionID"]?.Value;
-                        var grandparentRatingKey = videoNode.Attributes?["grandparentRatingKey"]?.Value;
-                        var grandparentTitle = videoNode.Attributes?["grandparentTitle"]?.Value;
-                        var viewOffsetStr = videoNode.Attributes?["viewOffset"]?.Value;
+                        XmlNode? prioritizedNode = null;
+                        XmlNode? fallbackNode = null;
 
-                        if (!string.IsNullOrEmpty(ratingKey))
+                        // Look for sessions belonging to the token owner first
+                        foreach (XmlNode videoNode in videoNodes)
                         {
-                            int viewOffset = 0;
-                            if (!string.IsNullOrEmpty(viewOffsetStr) && int.TryParse(viewOffsetStr, out var parsedOffset))
+                            // Store first valid node as fallback
+                            if (fallbackNode == null && !string.IsNullOrEmpty(videoNode.Attributes?["ratingKey"]?.Value))
                             {
-                                viewOffset = parsedOffset;
+                                fallbackNode = videoNode;
                             }
 
-                            return new CurrentlyPlayingMedia
+                            // Check if this session belongs to the current user
+                            var userNode = videoNode.ParentNode?.SelectSingleNode("User");
+                            if (userNode != null && !string.IsNullOrEmpty(currentUserId))
                             {
-                                EpisodeId = ratingKey,
-                                EpisodeTitle = title,
-                                MediaType = type,
-                                LibraryId = librarySectionID,
-                                ShowId = grandparentRatingKey,
-                                ShowTitle = grandparentTitle,
-                                ViewOffset = viewOffset
-                            };
+                                var userId = userNode.Attributes?["id"]?.Value;
+                                if (userId == currentUserId)
+                                {
+                                    prioritizedNode = videoNode;
+                                    _logger.LogInformation("Found media playing by token owner (User ID: {UserId})", currentUserId);
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Use the prioritized node (current user's session) if found, otherwise use any session
+                        var selectedNode = prioritizedNode ?? fallbackNode;
+                        
+                        if (selectedNode != null)
+                        {
+                            var ratingKey = selectedNode.Attributes?["ratingKey"]?.Value;
+                            var title = selectedNode.Attributes?["title"]?.Value;
+                            var type = selectedNode.Attributes?["type"]?.Value;
+                            var librarySectionID = selectedNode.Attributes?["librarySectionID"]?.Value;
+                            var grandparentRatingKey = selectedNode.Attributes?["grandparentRatingKey"]?.Value;
+                            var grandparentTitle = selectedNode.Attributes?["grandparentTitle"]?.Value;
+                            var viewOffsetStr = selectedNode.Attributes?["viewOffset"]?.Value;
+
+                            if (!string.IsNullOrEmpty(ratingKey))
+                            {
+                                int viewOffset = 0;
+                                if (!string.IsNullOrEmpty(viewOffsetStr) && int.TryParse(viewOffsetStr, out var parsedOffset))
+                                {
+                                    viewOffset = parsedOffset;
+                                }
+
+                                if (selectedNode == fallbackNode && prioritizedNode == null)
+                                {
+                                    _logger.LogInformation("Using session from another user as fallback (no session found for token owner)");
+                                }
+
+                                return new CurrentlyPlayingMedia
+                                {
+                                    EpisodeId = ratingKey,
+                                    EpisodeTitle = title,
+                                    MediaType = type,
+                                    LibraryId = librarySectionID,
+                                    ShowId = grandparentRatingKey,
+                                    ShowTitle = grandparentTitle,
+                                    ViewOffset = viewOffset
+                                };
+                            }
                         }
                     }
 
@@ -863,6 +903,42 @@ namespace PlexGifMaker.Data
                 _logger.LogError(ex, "Unexpected error while fetching currently playing media");
                 throw;
             }
+        }
+
+        private async Task<string?> GetCurrentUserIdAsync()
+        {
+            var client = _httpClientFactory.CreateClient();
+            var requestUri = $"{_baseUri}/myplex/account?X-Plex-Token={_token}";
+
+            try
+            {
+                var response = await client.GetAsync(requestUri);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var doc = new XmlDocument();
+                    doc.LoadXml(content);
+
+                    var accountNode = doc.SelectSingleNode("//MyPlex");
+                    if (accountNode != null)
+                    {
+                        var userId = accountNode.Attributes?["id"]?.Value;
+                        _logger.LogDebug("Retrieved current user ID: {UserId}", userId);
+                        return userId;
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to retrieve current user ID. Status code: {StatusCode}", response.StatusCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error retrieving current user ID. Will proceed without user prioritization.");
+            }
+
+            return null;
         }
     }
 
