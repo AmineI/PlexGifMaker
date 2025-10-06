@@ -310,7 +310,9 @@ namespace PlexGifMaker.Data
             var endTime = TimeSpan.FromMilliseconds(endSubtitleTime);
             var duration = endTime - startTime;
 
-            if (duration <= TimeSpan.Zero)
+            // For screenshots, duration can be zero
+            bool isScreenshot = format == "png";
+            if (!isScreenshot && duration <= TimeSpan.Zero)
             {
                 _logger.LogError("End time {EndTime} must be greater than start time {StartTime}.", endTime, startTime);
                 return null;
@@ -407,8 +409,19 @@ namespace PlexGifMaker.Data
             {
                 index = i;
             }
-            var formattedEndTime = (startTime + duration).ToString(@"hh\hmm\mss\sfff\ms").Replace(":", "");
-            var outputPath = Path.Combine("wwwroot", "gifs", $"{episodeId}_{formattedStartTime}_to_{formattedEndTime}.{format}");
+            
+            string outputPath;
+            bool isScreenshot = format == "png";
+
+            if (isScreenshot)
+            {
+                outputPath = Path.Combine("wwwroot", "gifs", $"{episodeId}_screenshot_{formattedStartTime}.png");
+            }
+            else
+            {
+                var formattedEndTime = (startTime + duration).ToString(@"hh\hmm\mss\sfff\ms").Replace(":", "");
+                outputPath = Path.Combine("wwwroot", "gifs", $"{episodeId}_{formattedStartTime}_to_{formattedEndTime}.{format}");
+            }
             outputPath = EnsureUniqueFilename(outputPath);
 
             string subtitles;
@@ -430,11 +443,21 @@ namespace PlexGifMaker.Data
                 throw new FileNotFoundException("No supported subtitle file found.");
             }
 
-            var ffmpegCommand = $"-report -v debug -ss {startTime} -t {duration} -i \"{videoFile}\" -lavfi \"{subtitles}[v]\" -map [v] -map 0:a? -c:a copy -c:v libx264 -pix_fmt yuv420p -copyts -avoid_negative_ts make_zero -max_muxing_queue_size 1024 \"{outputPath}\"";
-            if (format == "gif")
+            string ffmpegCommand;
+            if (isScreenshot)
+            {
+                // Capture a single frame at the specified timestamp
+                ffmpegCommand = $"-report -v debug -ss {startTime} -i \"{videoFile}\" -vframes 1 -lavfi \"{subtitles}\" -q:v 2 \"{outputPath}\"";
+            }
+            else if (format == "gif")
             {
                 // Use two-pass approach with palette generation for better gif color quality
                 ffmpegCommand = $"-report -v debug -ss {startTime} -t {duration} -i \"{videoFile}\" -lavfi \"fps=20,scale=400:-1:flags=lanczos,{subtitles},split[s0][s1];[s0]palettegen=max_colors=256:stats_mode=full[p];[s1][p]paletteuse=dither=floyd_steinberg:diff_mode=rectangle\" \"{outputPath}\"";
+            }
+            else
+            {
+                // MP4 clip
+                ffmpegCommand = $"-report -v debug -ss {startTime} -t {duration} -i \"{videoFile}\" -lavfi \"{subtitles}[v]\" -map [v] -map 0:a? -c:a copy -c:v libx264 -pix_fmt yuv420p -copyts -avoid_negative_ts make_zero -max_muxing_queue_size 1024 \"{outputPath}\"";
             }
             _logger.LogInformation("Executing FFmpeg command: {FfmpegCommand}", ffmpegCommand);
 

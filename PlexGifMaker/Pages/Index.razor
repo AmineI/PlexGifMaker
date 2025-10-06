@@ -114,13 +114,18 @@ else
     try
     {
         string? newGifPath;
+        
+        // For screenshots, we pass 0 duration (or can use TimeSpan.Zero equivalent)
+        // For clips/gifs, we pass the actual duration
+        int endTime = times.format == "png" ? times.startTime : times.endTime;
+        
         if (selectedSubtitleOptionKey != null)
         {
-            newGifPath = await PlexService.CreateGifFromSubtitlesAsync(selectedEpisode, times.startTime, times.endTime, times.format, subtitleOptions.FirstOrDefault(sub => sub?.Key == selectedSubtitleOptionKey));
+            newGifPath = await PlexService.CreateGifFromSubtitlesAsync(selectedEpisode, times.startTime, endTime, times.format, subtitleOptions.FirstOrDefault(sub => sub?.Key == selectedSubtitleOptionKey));
         }
         else
         {
-            newGifPath = await PlexService.CreateGifFromSubtitlesAsync(selectedEpisode, times.startTime, times.endTime,times.format);
+            newGifPath = await PlexService.CreateGifFromSubtitlesAsync(selectedEpisode, times.startTime, endTime, times.format);
         }
 
         if (!string.IsNullOrEmpty(newGifPath))
@@ -135,7 +140,7 @@ else
         }
         else
         {
-            errorMessage = "Failed to generate Clip. The service returned an empty path.";
+            errorMessage = $"Failed to generate {(times.format == "png" ? "screenshot" : "clip")}. The service returned an empty path.";
             _logger.LogWarning("Clip creation failed. Empty path returned from service.");
         }
     }
