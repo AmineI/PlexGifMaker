@@ -447,7 +447,8 @@ namespace PlexGifMaker.Data
             if (isScreenshot)
             {
                 // Capture a single frame at the specified timestamp
-                ffmpegCommand = $"-report -v debug -ss {startTime} -i \"{videoFile}\" -vframes 1 -lavfi \"{subtitles}\" -q:v 2 \"{outputPath}\"";
+                // Use -copyts to preserve original timestamps so subtitle filter can match correctly
+                ffmpegCommand = $"-report -v debug -ss {startTime} -i \"{videoFile}\" -copyts -vframes 1 -lavfi \"{subtitles}\" -q:v 2 \"{outputPath}\"";
             }
             else if (format == "gif")
             {
