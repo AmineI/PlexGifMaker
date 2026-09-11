@@ -8,7 +8,8 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
 
         [Theory]
         [InlineData("mp4", "-map 0:a? -c:a copy -c:v libx264 -pix_fmt yuv420p")]
-        public void BuildFfmpegCommand_UsesMp4EncodingAndAudioOptions(
+        [InlineData("png", "-frames:v 1 -c:v png")]
+        public void BuildFfmpegCommand_UsesMp4AndPngEncodingOptions(
             string format, string expectedEncoding)
         {
             var command = FfmpegCommandBuilder.BuildFfmpegCommand(
@@ -20,7 +21,9 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
                 (null, "0:v:0"));
 
             Assert.Equal(
-                $"-report -v debug -i \"http://plex.test/video.mkv\" -ss 00:00:10 -t 00:00:05 -map 0:v:0 {expectedEncoding} \"wwwroot/gifs/clip.{format}\"",
+                format == "png"
+                    ? $"-report -v debug -ss 00:00:10 -i \"http://plex.test/video.mkv\" -map 0:v:0 {expectedEncoding} \"wwwroot/gifs/clip.{format}\""
+                    : $"-report -v debug -i \"http://plex.test/video.mkv\" -ss 00:00:10 -t 00:00:05 -map 0:v:0 {expectedEncoding} \"wwwroot/gifs/clip.{format}\"",
                 command);
         }
 
@@ -44,6 +47,7 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
         [Theory]
         [InlineData("mp4")]
         [InlineData("gif")]
+        [InlineData("png")]
         public void BuildFfmpegCommand_PreservesSuppliedFilterAndOutputMap(string format)
         {
             const string filterArguments = "-lavfi \"[0:v]hflip[v]\"";
@@ -88,12 +92,13 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
         [Theory]
         [InlineData("mp4", null)]
         [InlineData("gif", "-vf \"fps=20,scale=400:-1:flags=lanczos\"")]
+        [InlineData("png", null)]
         public void BuildVideoFilter_WithoutSubtitles_MapsSourceVideoWithoutRequiringSubtitleDirectory(
             string format, string? expectedArguments)
         {
             var missingDirectory = Path.Combine(subtitleDirectory.FullName, "does-not-exist");
 
-            var filter = FfmpegCommandBuilder.BuildVideoFilter(null, format, missingDirectory);
+            var filter = FfmpegCommandBuilder.BuildVideoFilter(null, format, missingDirectory, TimeSpan.FromSeconds(10));
 
             Assert.Equal((expectedArguments, "0:v:0"), filter);
             Assert.False(Directory.Exists(missingDirectory));
@@ -102,6 +107,7 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
         [Theory]
         [InlineData("mp4", "-lavfi \"subtitles='{subtitleFile}'[v]\"")]
         [InlineData("gif", "-lavfi \"subtitles='{subtitleFile}':force_style='Fontsize=24',fps=20,scale=400:-1:flags=lanczos[v]\"")]
+        [InlineData("png", "-lavfi \"setpts=PTS+10/TB,subtitles='{subtitleFile}'[v]\"")]
         public void BuildVideoFilter_TextSubtitles_BurnsInFileBeforeFormatSpecificScaling(
             string format, string expectedArguments)
         {
@@ -109,7 +115,7 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
             var subtitle = new Subtitle { Codec = "srt", Key = "/library/streams/2" };
             var escapedPath = subtitleFile.Replace("\\", "\\\\");
 
-            var filter = FfmpegCommandBuilder.BuildVideoFilter(subtitle, format, subtitleDirectory.FullName);
+            var filter = FfmpegCommandBuilder.BuildVideoFilter(subtitle, format, subtitleDirectory.FullName, TimeSpan.FromSeconds(10));
 
             Assert.Equal(expectedArguments.Replace("{subtitleFile}", escapedPath), filter.Arguments);
             Assert.Equal("[v]", filter.OutputMap);
@@ -118,13 +124,14 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
         [Theory]
         [InlineData("mp4", "-lavfi \"[0:v][0:s:2]overlay[v]\"")]
         [InlineData("gif", "-lavfi \"[0:v][0:s:2]overlay,fps=20,scale=400:-1:flags=lanczos[v]\"")]
+        [InlineData("png", "-lavfi \"[0:v][0:s:2]overlay[v]\"")]
         public void BuildVideoFilter_ImageSubtitles_OverlaysSelectedStreamBeforeFormatSpecificScaling(
             string format, string expectedArguments)
         {
             CreateSubtitleFile("sup");
             var subtitle = new Subtitle { Codec = "sup", Key = "2" };
 
-            var filter = FfmpegCommandBuilder.BuildVideoFilter(subtitle, format, subtitleDirectory.FullName);
+            var filter = FfmpegCommandBuilder.BuildVideoFilter(subtitle, format, subtitleDirectory.FullName, TimeSpan.FromSeconds(10));
 
             Assert.Equal((expectedArguments, "[v]"), filter);
         }
@@ -132,14 +139,16 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
         [Theory]
         [InlineData("srt", "mp4")]
         [InlineData("srt", "gif")]
+        [InlineData("srt", "png")]
         [InlineData("sup", "mp4")]
         [InlineData("sup", "gif")]
+        [InlineData("sup", "png")]
         public void BuildVideoFilter_MissingSelectedSubtitleFile_ThrowsWithMissingPath(string codec, string format)
         {
             var subtitle = new Subtitle { Codec = codec, Key = "0" };
 
             var exception = Assert.Throws<FileNotFoundException>(() =>
-                FfmpegCommandBuilder.BuildVideoFilter(subtitle, format, subtitleDirectory.FullName));
+                FfmpegCommandBuilder.BuildVideoFilter(subtitle, format, subtitleDirectory.FullName, TimeSpan.FromSeconds(10)));
 
             Assert.Equal(Path.Combine(subtitleDirectory.FullName, $"subtitle.{codec}"), exception.FileName);
         }

@@ -306,7 +306,7 @@ namespace PlexGifMaker.Data
             var endTime = TimeSpan.FromMilliseconds(endSubtitleTime);
             var duration = endTime - startTime;
 
-            if (duration <= TimeSpan.Zero)
+            if (format != "png" && duration <= TimeSpan.Zero)
             {
                 _logger.LogError("End time {EndTime} must be greater than start time {StartTime}.", endTime, startTime);
                 return null;
@@ -382,11 +382,18 @@ namespace PlexGifMaker.Data
         {
             var formattedStartTime = startTime.ToString(@"hh\hmm\mss\sfff\ms").Replace(":", "");
             var formattedEndTime = (startTime + duration).ToString(@"hh\hmm\mss\sfff\ms").Replace(":", "");
-            var outputPath = Path.Combine("wwwroot", "gifs", $"{episodeId}_{formattedStartTime}_to_{formattedEndTime}.{format}");
+            var outputFilename = format == "png"
+                ? $"{episodeId}_{formattedStartTime}.{format}"
+                : $"{episodeId}_{formattedStartTime}_to_{formattedEndTime}.{format}";
+            var outputPath = Path.Combine("wwwroot", "gifs", outputFilename);
             outputPath = EnsureUniqueFilename(outputPath);
 
-            var filter = FfmpegCommandBuilder.BuildVideoFilter(subtitle, format, subtitlePath);
-            var ffmpegCommand = FfmpegCommandBuilder.BuildFfmpegCommand(videoFile, startTime, duration, outputPath, format, filter);
+            // For PNG screenshots, offset the capture time slightly (+100ms) past the subtitle start time.
+            // This prevents missing subtitles due to frame timestamp rounding or ASS fade-in (\fad) effects at 0ms.
+            var processStartTime = format == "png" ? startTime.Add(TimeSpan.FromMilliseconds(100)) : startTime;
+
+            var filter = FfmpegCommandBuilder.BuildVideoFilter(subtitle, format, subtitlePath, processStartTime);
+            var ffmpegCommand = FfmpegCommandBuilder.BuildFfmpegCommand(videoFile, processStartTime, duration, outputPath, format, filter);
             _logger.LogInformation("Executing FFmpeg command: {FfmpegCommand}", ffmpegCommand);
 
             using (var process = new Process())
