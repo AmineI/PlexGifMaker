@@ -7,10 +7,11 @@ services:
     ports:
       - "9000:9000"
     volumes:
-      - ${PLEXGIFMAKER_DATA_PATH:-./plexgifmaker_keys}:/usr/shared/plexgifmaker_keys
+      - plexgifmaker_keys:/usr/shared/plexgifmaker_keys
     restart: unless-stopped
     environment:
       - ASPNETCORE_URLS=http://+;http://+:9000
+      - DataProtection__KeysPath=/usr/shared/plexgifmaker_keys
       - FFREPORT=file="/logs/ffmpeg-$(date +%Y%m%s).log"
   # ngrok:
   #   image: ngrok/ngrok:latest
@@ -24,3 +25,6 @@ services:
   #     - ./ngrok.yml:/home/ngrok/.config/ngrok/ngrok.yml
   #   depends_on:
   #     - plexgifmaker
+
+volumes:
+  plexgifmaker_keys:
