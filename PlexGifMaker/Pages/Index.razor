@@ -289,6 +289,19 @@ else
                 try
                 {
                     subtitleOptions = await PlexService.GetSubtitleOptionsAsync(selectedEpisode);
+                    totalDuration = await PlexService.GetEpisodeDurationAsync(selectedEpisode);
+                    totalDurationInSeconds = (float)totalDuration.TotalSeconds;
+
+                    if (subtitleOptions == null || !subtitleOptions.Any())
+                    {
+                        subsFound = false;
+                        errorMessage = "No subtitles found for the selected episode. Please enter the start and end times manually.";
+                    }
+                    else
+                    {
+                        subsFound = true;
+                        errorMessage = null;
+                    }
                 }
                 catch (Exception ex)
                 {

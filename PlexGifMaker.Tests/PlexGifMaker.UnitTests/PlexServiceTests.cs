@@ -11,7 +11,7 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
         public async Task GetEpisodesAsync_ReturnsCorrectEpisodesCount()
         {
             // Arrange
-            var expectedUri = new Uri($"http://test.com/library/metadata/0/allLeaves?X-Plex-Token=");
+            var expectedUri = new Uri($"http://plex.test/library/metadata/0/allLeaves?X-Plex-Token=");
 
             var handlerMock = PlexServiceTestsHelpers.SetupMockHttpMessageHandler(PlexServiceTestsHelpers.Content, HttpStatusCode.OK);
             var httpClientFactoryMock = PlexServiceTestsHelpers.SetupMockHttpClientFactory(handlerMock);
@@ -28,7 +28,7 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
         public async Task GetLibraries_ReturnsCorrectLibraries()
         {
             // Arrange
-            var baseUri = "http://test.com";
+            var baseUri = "http://plex.test";
             var token = "3TcQZEzVWANSs1gs_sXs";
             var expectedUri = $"{baseUri}/library/sections?X-Plex-Token={token}";
 
@@ -56,7 +56,7 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
         public async Task GetShowsAsync_ReturnsCorrectShowsCount()
         {
             // Arrange
-            var expectedUri = new Uri($"http://test.com/library/sections/1/all?X-Plex-Token=");
+            var expectedUri = new Uri($"http://plex.test/library/sections/1/all?X-Plex-Token=");
             var handlerMock = PlexServiceTestsHelpers.SetupMockHttpMessageHandler(PlexServiceTestsHelpers.Content, HttpStatusCode.OK);
             var httpClientFactoryMock = PlexServiceTestsHelpers.SetupMockHttpClientFactory(handlerMock);
             var loggerMock = new Mock<ILogger<PlexService>>();
@@ -75,14 +75,14 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
         {
             // Arrange
             var plexToken = "3TcQZEzVWANSs1gs_sXs";
-            var expectedUri = new Uri($"http://test.com/library/metadata/8405?X-Plex-Token={plexToken}");
+            var expectedUri = new Uri($"http://plex.test/library/metadata/8405?X-Plex-Token={plexToken}");
             var handlerMock = PlexServiceTestsHelpers.SetupMockHttpMessageHandler(PlexServiceTestsHelpers.Content2, HttpStatusCode.OK);
             var httpClientFactoryMock = PlexServiceTestsHelpers.SetupMockHttpClientFactory(handlerMock);
             var loggerMock = new Mock<ILogger<PlexService>>();
             var service = new PlexService(httpClientFactoryMock.Object, loggerMock.Object);
 
             // Set the configuration with the test token
-            service.SetConfiguration("http://test.com", plexToken);
+            service.SetConfiguration("http://plex.test", plexToken);
 
             // Act
             var subtitles = await service.GetSubtitleOptionsAsync("8405");
@@ -92,5 +92,6 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
             Assert.True(subtitles.Count > 0);
             PlexServiceTestsHelpers.VerifyMockHttpMessageHandler(handlerMock, expectedUri.ToString());
         }
+
     }
 }

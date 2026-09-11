@@ -12,16 +12,12 @@ namespace PlexGifMaker.Data
         private string? _baseUri;
         private string? _token;
         private readonly string subtitlePath;
-        private static readonly List<string> imageBasedSubtitleFormats = new List<string> { "sup" };
-        private static readonly List<string> supportedSubtitleFormats = new List<string> { "srt", "ass", "vtt", "sub" }.Concat(imageBasedSubtitleFormats).ToList(); // Add more formats as needed
-            
 
         public PlexService(IHttpClientFactory httpClientFactory, ILogger<PlexService> logger)
         {
             _httpClientFactory = httpClientFactory;
             _logger = logger;
-            subtitlePath = Path.Combine(Directory.GetCurrentDirectory(), "subtitles")
-                       ?? throw new InvalidOperationException("Subtitle path cannot be determined.");
+            subtitlePath = Path.Combine(Directory.GetCurrentDirectory(), "subtitles");
         }
 
         public void SetConfiguration(string baseUri, string token)
@@ -342,23 +338,6 @@ namespace PlexGifMaker.Data
                 return null;
             }
 
-            if (string.IsNullOrEmpty(subtitle?.Key))
-            {
-                var subtitleKeyNode = doc.SelectSingleNode("//Stream[@streamType='3' and (@languageCode='eng' or @language='English')]");
-                subtitle = new Subtitle
-                {
-                    Key = subtitleKeyNode?.Attributes?["key"]?.Value ?? "Unknown",
-                    Codec = subtitleKeyNode?.Attributes?["codec"]?.Value ?? "Unknown",
-                    DisplayTitle = subtitleKeyNode?.Attributes?["displayTitle"]?.Value ?? "Unknown",
-                    Language = subtitleKeyNode?.Attributes?["language"]?.Value ?? "Unknown"
-                };
-            }
-
-            if (subtitle.Key == null)
-            {
-                _logger.LogError("Subtitle key is null or empty for episode {EpisodeId}.", episodeId);
-                return null;
-            }
             string videoFile = $"{_baseUri}{key}?X-Plex-Token={_token}";
 
             var outputPath = await GenerateGifAsync(videoFile, subtitle, startTime, duration, episodeId, format);
@@ -399,42 +378,16 @@ namespace PlexGifMaker.Data
             }
         }
 
-        private async Task<string?> GenerateGifAsync(string videoFile, Subtitle subtitle, TimeSpan startTime, TimeSpan duration, string episodeId, string format)
+        private async Task<string?> GenerateGifAsync(string videoFile, Subtitle? subtitle, TimeSpan startTime, TimeSpan duration, string episodeId, string format)
         {
             var formattedStartTime = startTime.ToString(@"hh\hmm\mss\sfff\ms").Replace(":", "");
-            var index = 0;
-            if (int.TryParse(subtitle.Key, out int i))
-            {
-                index = i;
-            }
             var formattedEndTime = (startTime + duration).ToString(@"hh\hmm\mss\sfff\ms").Replace(":", "");
             var outputPath = Path.Combine("wwwroot", "gifs", $"{episodeId}_{formattedStartTime}_to_{formattedEndTime}.{format}");
             outputPath = EnsureUniqueFilename(outputPath);
 
-            string subtitles;
-            var subtitleFile = Path.Combine(subtitlePath, $"subtitle.{subtitle.Codec}");
-            if (File.Exists(subtitleFile)){
-                if (imageBasedSubtitleFormats.Contains(subtitle.Codec ?? "srt"))
-                {
-                    //TODO
-                    string subtitleStream = $"[0:v][0:s:{index}]overlay[v]";
-                    subtitles = $"{subtitleStream}";
-                }
-                else
-                {
-                    subtitles = $"subtitles='{subtitleFile.Replace("\\", "\\\\")}'{(format == "gif" ? ":force_style='Fontsize=24'" : "")}[v]";                
-                }
-            }
-            else
-            {
-                throw new FileNotFoundException("No supported subtitle file found.");
-            }
+            var filter = FfmpegCommandBuilder.BuildVideoFilter(subtitle, format, subtitlePath);
+            var ffmpegCommand = FfmpegCommandBuilder.BuildFfmpegCommand(videoFile, startTime, duration, outputPath, format, filter);
 
-            var ffmpegCommand = $"-report -v debug -i \"{videoFile}\" -ss {startTime} -t {duration} -lavfi \"{subtitles}\" -map [v] -map 0:a -c:a copy -c:v libx264 -pix_fmt yuv420p \"{outputPath}\"";
-            if (format == "gif")
-            {
-                ffmpegCommand = $"-report -v debug -i \"{videoFile}\" -ss {startTime} -t {duration} -lavfi \"fps=20,scale=400:-1:flags=lanczos,{subtitles}\" -map [v] -c:v gif \"{outputPath}\"";
-            }
             _logger.LogInformation("Executing FFmpeg command: {FfmpegCommand}", ffmpegCommand);
 
             using (var process = new Process())
@@ -461,7 +414,6 @@ namespace PlexGifMaker.Data
                     return null;
                 }
 
-                // Check if the file was actually created
                 if (!File.Exists(outputPath))
                 {
                     _logger.LogError("FFmpeg did not create the output file: {OutputPath}", outputPath);
