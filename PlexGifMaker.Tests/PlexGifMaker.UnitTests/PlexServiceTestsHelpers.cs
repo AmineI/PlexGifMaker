@@ -126,7 +126,7 @@ internal static class PlexServiceTestsHelpers
     {
         var httpClient = new HttpClient(handlerMock.Object)
         {
-            BaseAddress = new Uri("http://test.com/")
+            BaseAddress = new Uri("http://plex.test/")
         };
 
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();

@@ -10,7 +10,9 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UITests
 
         public UITests()
         {
-            _driver = new ChromeDriver();
+            var options = new ChromeOptions();
+            options.AddArgument("--headless=new");
+            _driver = new ChromeDriver(options);
         }
 
         [Fact]
