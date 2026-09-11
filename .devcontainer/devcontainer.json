@@ -3,9 +3,10 @@
 {
 	"name": "C# (.NET)",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/dotnet:1-9.0-bookworm",
+	"image": "mcr.microsoft.com/devcontainers/dotnet:2-9.0-bookworm",
 	"features": {
-		"ghcr.io/devcontainers/features/docker-in-docker:2": {}
+		"ghcr.io/devcontainers/features/docker-in-docker:4.1.0": {},
+		"ghcr.io/kreemer/features/chrometesting:1": {}
 	}
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
@@ -18,9 +19,6 @@
 	//			"protocol": "https"
 	//		}
 	// }
-
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "dotnet restore",
 
 	// Configure tool-specific properties.
 	// "customizations": {},
