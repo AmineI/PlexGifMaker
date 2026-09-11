@@ -9,6 +9,7 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
         [Theory]
         [InlineData("mp4", "-map 0:a? -c:a copy -c:v libx264 -pix_fmt yuv420p")]
         [InlineData("gif", "-c:v gif")]
+        [InlineData("png", "-frames:v 1 -c:v png")]
         public void BuildFfmpegCommand_UsesFormatSpecificEncodingAndAudioOptions(
             string format, string expectedEncoding)
         {
@@ -21,13 +22,14 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
                 (null, "0:v:0"));
 
             Assert.Equal(
-                $"-report -v debug -i \"http://plex.test/video.mkv\" -ss 00:00:10 -t 00:00:05 -map 0:v:0 {expectedEncoding} \"wwwroot/gifs/clip.{format}\"",
+                $"-report -v debug -i \"http://plex.test/video.mkv\" -ss 00:00:10{(format == "png" ? "" : " -t 00:00:05")} -map 0:v:0 {expectedEncoding} \"wwwroot/gifs/clip.{format}\"",
                 command);
         }
 
         [Theory]
         [InlineData("mp4")]
         [InlineData("gif")]
+        [InlineData("png")]
         public void BuildFfmpegCommand_PreservesSuppliedFilterAndOutputMap(string format)
         {
             const string filterArguments = "-lavfi \"[0:v]hflip[filtered]\"";
@@ -62,6 +64,7 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
         [Theory]
         [InlineData("mp4", null)]
         [InlineData("gif", "-vf \"fps=20,scale=400:-1:flags=lanczos\"")]
+        [InlineData("png", null)]
         public void BuildVideoFilter_WithoutSubtitles_MapsSourceVideoWithoutRequiringSubtitleDirectory(
             string format, string? expectedArguments)
         {
@@ -76,6 +79,7 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
         [Theory]
         [InlineData("mp4", "-lavfi \"subtitles='{subtitleFile}'[v]\"")]
         [InlineData("gif", "-lavfi \"subtitles='{subtitleFile}':force_style='Fontsize=24',fps=20,scale=400:-1:flags=lanczos[v]\"")]
+        [InlineData("png", "-lavfi \"subtitles='{subtitleFile}'[v]\"")]
         public void BuildVideoFilter_TextSubtitles_BurnsInFileBeforeFormatSpecificScaling(
             string format, string expectedArguments)
         {
@@ -92,6 +96,7 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
         [Theory]
         [InlineData("mp4", "-lavfi \"[0:v][0:s:2]overlay[v]\"")]
         [InlineData("gif", "-lavfi \"[0:v][0:s:2]overlay,fps=20,scale=400:-1:flags=lanczos[v]\"")]
+        [InlineData("png", "-lavfi \"[0:v][0:s:2]overlay[v]\"")]
         public void BuildVideoFilter_ImageSubtitles_OverlaysSelectedStreamBeforeFormatSpecificScaling(
             string format, string expectedArguments)
         {
@@ -106,8 +111,10 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
         [Theory]
         [InlineData("srt", "mp4")]
         [InlineData("srt", "gif")]
+        [InlineData("srt", "png")]
         [InlineData("sup", "mp4")]
         [InlineData("sup", "gif")]
+        [InlineData("sup", "png")]
         public void BuildVideoFilter_MissingSelectedSubtitleFile_ThrowsWithMissingPath(string codec, string format)
         {
             var subtitle = new Subtitle { Codec = codec, Key = "0" };

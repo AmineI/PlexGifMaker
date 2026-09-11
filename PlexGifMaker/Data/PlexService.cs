@@ -306,7 +306,7 @@ namespace PlexGifMaker.Data
             var endTime = TimeSpan.FromMilliseconds(endSubtitleTime);
             var duration = endTime - startTime;
 
-            if (duration <= TimeSpan.Zero)
+            if (format != "png" && duration <= TimeSpan.Zero)
             {
                 _logger.LogError("End time {EndTime} must be greater than start time {StartTime}.", endTime, startTime);
                 return null;
@@ -382,7 +382,10 @@ namespace PlexGifMaker.Data
         {
             var formattedStartTime = startTime.ToString(@"hh\hmm\mss\sfff\ms").Replace(":", "");
             var formattedEndTime = (startTime + duration).ToString(@"hh\hmm\mss\sfff\ms").Replace(":", "");
-            var outputPath = Path.Combine("wwwroot", "gifs", $"{episodeId}_{formattedStartTime}_to_{formattedEndTime}.{format}");
+            var outputFilename = format == "png"
+                ? $"{episodeId}_{formattedStartTime}.{format}"
+                : $"{episodeId}_{formattedStartTime}_to_{formattedEndTime}.{format}";
+            var outputPath = Path.Combine("wwwroot", "gifs", outputFilename);
             outputPath = EnsureUniqueFilename(outputPath);
 
             var filter = FfmpegCommandBuilder.BuildVideoFilter(subtitle, format, subtitlePath);

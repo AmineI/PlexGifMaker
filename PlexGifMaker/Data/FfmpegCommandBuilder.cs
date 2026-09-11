@@ -56,7 +56,9 @@ namespace PlexGifMaker.Data
             var arguments = new List<string>
             {
                 $"-report -v debug -i \"{videoFile}\"",
-                $"-ss {startTime} -t {duration}"
+                format == "png"
+                    ? $"-ss {startTime}"
+                    : $"-ss {startTime} -t {duration}"
             };
 
             if (filter.Arguments != null)
@@ -65,9 +67,12 @@ namespace PlexGifMaker.Data
             }
 
             arguments.Add($"-map {filter.OutputMap}");
-            arguments.Add(format == "gif"
-                ? "-c:v gif"
-                : "-map 0:a? -c:a copy -c:v libx264 -pix_fmt yuv420p");
+            arguments.Add(format switch
+            {
+                "gif" => "-c:v gif",
+                "png" => "-frames:v 1 -c:v png",
+                _ => "-map 0:a? -c:a copy -c:v libx264 -pix_fmt yuv420p"
+            });
             arguments.Add($"\"{outputPath}\"");
 
             return string.Join(' ', arguments);
