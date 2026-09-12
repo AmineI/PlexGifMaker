@@ -3,6 +3,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
 EXPOSE 8080
 ENV DataProtection__KeysPath=/usr/shared/plexgifmaker_keys
+ENV FFMPEG_DEBUG=false
 
 # Switch to root to install packages and set up user
 USER root

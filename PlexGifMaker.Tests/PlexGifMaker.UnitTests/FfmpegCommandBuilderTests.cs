@@ -4,10 +4,11 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
 {
     public class FfmpegCommandBuilderTests : IDisposable
     {
+        private const string CommonOptions = "-hide_banner -loglevel error -nostdin -filter_threads 1";
         private readonly DirectoryInfo subtitleDirectory = Directory.CreateTempSubdirectory("plexgifmaker-tests-");
 
         [Theory]
-        [InlineData("mp4", "-map 0:a? -c:a copy -c:v libx264 -pix_fmt yuv420p")]
+        [InlineData("mp4", "-map 0:a? -c:a copy -c:v libx264 -threads 1 -pix_fmt yuv420p")]
         [InlineData("png", "-frames:v 1 -c:v png")]
         public void BuildFfmpegCommand_UsesMp4AndPngEncodingOptions(
             string format, string expectedEncoding)
@@ -22,8 +23,8 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
 
             Assert.Equal(
                 format == "png"
-                    ? $"-report -v debug -ss 00:00:10 -i \"http://plex.test/video.mkv\" -map 0:v:0 {expectedEncoding} \"wwwroot/gifs/clip.{format}\""
-                    : $"-report -v debug -i \"http://plex.test/video.mkv\" -ss 00:00:10 -t 00:00:05 -map 0:v:0 {expectedEncoding} \"wwwroot/gifs/clip.{format}\"",
+                    ? $"{CommonOptions} -ss 00:00:10 -i \"http://plex.test/video.mkv\" -map 0:v:0 {expectedEncoding} \"wwwroot/gifs/clip.{format}\""
+                    : $"{CommonOptions} -i \"http://plex.test/video.mkv\" -ss 00:00:10 -t 00:00:05 -map 0:v:0 {expectedEncoding} \"wwwroot/gifs/clip.{format}\"",
                 command);
         }
 
@@ -44,6 +45,25 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
             Assert.Contains("-map \"[out]\"", command);
             Assert.Contains("-i \"http://plex.test/video.mkv\" -ss 00:00:10 -t 00:00:05", command);
             Assert.DoesNotContain("-map 0:a", command);
+        }
+
+        [Theory]
+        [InlineData("mp4")]
+        [InlineData("gif")]
+        [InlineData("png")]
+        public void BuildFfmpegCommand_EnablesDebugLoggingOptions(string format)
+        {
+            var command = FfmpegCommandBuilder.BuildFfmpegCommand(
+                "http://plex.test/video.mkv",
+                TimeSpan.FromSeconds(10),
+                TimeSpan.FromSeconds(5),
+                $"wwwroot/gifs/clip.{format}",
+                format,
+                (null, "0:v:0"),
+                debugLogging: true);
+
+            Assert.StartsWith("-report -v debug -nostdin -filter_threads 1", command);
+            Assert.DoesNotContain("-loglevel error", command);
         }
 
         [Fact]
@@ -111,7 +131,7 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
                 (null, "0:v:0"));
 
             Assert.Equal(
-                "-report -v debug -i \"media/source video.mkv\" -ss 00:00:10.2500000 -t 00:00:01.5000000 -map 0:v:0 -map 0:a? -c:a copy -c:v libx264 -pix_fmt yuv420p \"output/my clip.mp4\"",
+                $"{CommonOptions} -i \"media/source video.mkv\" -ss 00:00:10.2500000 -t 00:00:01.5000000 -map 0:v:0 -map 0:a? -c:a copy -c:v libx264 -threads 1 -pix_fmt yuv420p \"output/my clip.mp4\"",
                 command);
         }
 

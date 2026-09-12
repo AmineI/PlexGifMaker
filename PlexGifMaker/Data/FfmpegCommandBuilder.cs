@@ -4,6 +4,9 @@ namespace PlexGifMaker.Data
 {
     internal static class FfmpegCommandBuilder
     {
+        private const string DefaultOptions = "-hide_banner -loglevel error -nostdin -filter_threads 1";
+        private const string DebugOptions = "-report -v debug -nostdin -filter_threads 1";
+
         private static readonly HashSet<string> ImageBasedSubtitleFormats = new(StringComparer.OrdinalIgnoreCase)
         {
             "sup"
@@ -57,18 +60,20 @@ namespace PlexGifMaker.Data
             TimeSpan duration,
             string outputPath,
             string format,
-            (string? Arguments, string OutputMap) filter)
+            (string? Arguments, string OutputMap) filter,
+            bool debugLogging = false)
         {
             if (format == "gif")
             {
-                return BuildGifCommand(videoFile, startTime, duration, outputPath, filter);
+                return BuildGifCommand(videoFile, startTime, duration, outputPath, filter, debugLogging);
             }
 
+            var commonOptions = debugLogging ? DebugOptions : DefaultOptions;
             var arguments = new List<string>
             {
                 format == "png"
-                    ? $"-report -v debug -ss {startTime} -i \"{videoFile}\""
-                    : $"-report -v debug -i \"{videoFile}\"",
+                    ? $"{commonOptions} -ss {startTime} -i \"{videoFile}\""
+                    : $"{commonOptions} -i \"{videoFile}\"",
                 format == "png" ? string.Empty : $"-ss {startTime} -t {duration}"
             };
 
@@ -82,7 +87,7 @@ namespace PlexGifMaker.Data
             {
                 "gif" => "-c:v gif",
                 "png" => "-frames:v 1 -c:v png",
-                _ => "-map 0:a? -c:a copy -c:v libx264 -pix_fmt yuv420p"
+                _ => "-map 0:a? -c:a copy -c:v libx264 -threads 1 -pix_fmt yuv420p"
             });
             arguments.Add($"\"{outputPath}\"");
 
@@ -94,7 +99,8 @@ namespace PlexGifMaker.Data
             TimeSpan startTime,
             TimeSpan duration,
             string outputPath,
-            (string? Arguments, string OutputMap) filter)
+            (string? Arguments, string OutputMap) filter,
+            bool debugLogging)
         {
             var videoFilter = filter.Arguments == null
                 ? "fps=20,scale=400:-1:flags=lanczos"
@@ -104,7 +110,7 @@ namespace PlexGifMaker.Data
 
             var arguments = new List<string>
             {
-                "-report -v debug",
+                $"{(debugLogging ? DebugOptions : DefaultOptions)} -filter_complex_threads 1",
                 $"-i \"{videoFile}\"",
                 $"-ss {startTime} -t {duration}",
                 $"-filter_complex \"{filterGraph}\"",

@@ -408,39 +408,31 @@ namespace PlexGifMaker.Data
             var processStartTime = format == "png" ? startTime.Add(TimeSpan.FromMilliseconds(100)) : startTime;
 
             var filter = FfmpegCommandBuilder.BuildVideoFilter(subtitle, format, subtitlePath, processStartTime);
-            var ffmpegCommand = FfmpegCommandBuilder.BuildFfmpegCommand(videoFile, processStartTime, duration, outputPath, format, filter);
+            var debugLogging = bool.TryParse(Environment.GetEnvironmentVariable("FFMPEG_DEBUG"), out var enabled) && enabled;
+            var ffmpegCommand = FfmpegCommandBuilder.BuildFfmpegCommand(videoFile, processStartTime, duration, outputPath, format, filter, debugLogging);
             _logger.LogInformation("Executing FFmpeg command: {FfmpegCommand}", ffmpegCommand);
 
-            using (var process = new Process())
+            using var process = new Process();
+            process.StartInfo.FileName = "ffmpeg";
+            process.StartInfo.Arguments = ffmpegCommand;
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.RedirectStandardError = true;
+
+            process.Start();
+            var errorTask = process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+            if (process.ExitCode != 0)
             {
-                process.StartInfo.FileName = "ffmpeg";
-                process.StartInfo.Arguments = ffmpegCommand;
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.RedirectStandardError = true;
-
-                StringBuilder output = new();
-                StringBuilder error = new();
-
-                process.OutputDataReceived += (sender, args) => output.AppendLine(args.Data);
-                process.ErrorDataReceived += (sender, args) => error.AppendLine(args.Data);
-
-                process.Start();
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
-                await process.WaitForExitAsync();
-                if (process.ExitCode != 0)
-                {
-                    _logger.LogError("FFmpeg encountered an error: {ErrorOutput}", error.ToString());
-                    return null;
-                }
-
-                if (!File.Exists(outputPath))
-                {
-                    _logger.LogError("FFmpeg did not create the output file: {OutputPath}", outputPath);
-                    return null;
-                }
+                _logger.LogError("FFmpeg encountered an error: {ErrorOutput}", await errorTask);
+                return null;
             }
+
+            if (!File.Exists(outputPath))
+            {
+                _logger.LogError("FFmpeg did not create the output file: {OutputPath}", outputPath);
+                return null;
+            }
+
             return outputPath;
         }
 
