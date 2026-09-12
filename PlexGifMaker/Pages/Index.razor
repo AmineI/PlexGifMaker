@@ -3,7 +3,6 @@
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @using PlexGifMaker.Data
 @using PlexGifMaker.Pages.Components
-@using System.Globalization
 @using SubtitlesParser.Classes
 @inject NavigationManager NavigationManager
 @inject ProtectedLocalStorage ProtectedLocalStorage
@@ -90,7 +89,6 @@ else
         private string? errorMessage;
         private string? successMessage;
         private TimeSpan totalDuration;
-        float totalDurationInSeconds;
         private bool subsFound = true;
         private List<Subtitle?>? subtitleOptions;
         private bool isAutoDetecting = false;
@@ -114,13 +112,14 @@ else
     try
     {
         string? newGifPath;
-        if (selectedSubtitleOptionKey != null)
+        var selectedSubtitle = subtitleOptions?.FirstOrDefault(sub => sub?.Key == selectedSubtitleOptionKey);
+        if (selectedSubtitleOptionKey != null && selectedSubtitle != null)
         {
-            newGifPath = await PlexService.CreateGifFromSubtitlesAsync(selectedEpisode, times.startTime, times.endTime, times.format, subtitleOptions.FirstOrDefault(sub => sub?.Key == selectedSubtitleOptionKey));
+            newGifPath = await PlexService.CreateGifFromSubtitlesAsync(selectedEpisode, times.startTime, times.endTime, times.format, selectedSubtitle);
         }
         else
         {
-            newGifPath = await PlexService.CreateGifFromSubtitlesAsync(selectedEpisode, times.startTime, times.endTime,times.format);
+            newGifPath = await PlexService.CreateGifFromSubtitlesAsync(selectedEpisode, times.startTime, times.endTime, times.format);
         }
 
         if (!string.IsNullOrEmpty(newGifPath))
@@ -152,38 +151,6 @@ else
     }
 }
 
-
-        // When you need to set subtitle times from the parent component:
-        private void SetSubtitleTimes(int startTime, int endTime)
-        {
-            gifCreatorRef?.SetSubtitleTimes(startTime, endTime);
-        }
-
-        private string startSubtitleTimeString
-        {
-            get => TimeSpan.FromMilliseconds(selectedStartSubtitleTime).ToString(@"hh\:mm\:ss\:fff");
-            set
-            {
-                if (TimeSpan.TryParseExact(value, @"hh\:mm\:ss\:fff", null, out var time))
-                {
-                    selectedStartSubtitleTime = (int)time.TotalMilliseconds;
-                }
-            }
-        }
-
-        private string endSubtitleTimeString
-        {
-            get => TimeSpan.FromMilliseconds(selectedEndSubtitleTime).ToString(@"hh\:mm\:ss\:fff");
-            set
-            {
-                if (TimeSpan.TryParseExact(value, @"hh\:mm\:ss\:fff", null, out var time))
-                {
-                    selectedEndSubtitleTime = (int)time.TotalMilliseconds;
-                }
-            }
-        }
-        private int selectedStartSubtitleTime;
-        private int selectedEndSubtitleTime;
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
@@ -311,7 +278,6 @@ else
                 {
                     subtitleOptions = await PlexService.GetSubtitleOptionsAsync(selectedEpisode);
                     totalDuration = await PlexService.GetEpisodeDurationAsync(selectedEpisode);
-                    totalDurationInSeconds = (float)totalDuration.TotalSeconds;
 
                     if (subtitleOptions == null || !subtitleOptions.Any())
                     {
@@ -359,63 +325,6 @@ else
 
 
 
-        private void HandleStartSubtitleChange(ChangeEventArgs e)
-        {
-            if (e?.Value != null && int.TryParse(e.Value.ToString(), out var result))
-            {
-                selectedStartSubtitleTime = result;
-            }
-            else
-            {
-                _logger.LogWarning("HandleStartSubtitleChange received a null or invalid ChangeEventArgs.");
-            }
-        }
-
-        private void HandleEndSubtitleChange(ChangeEventArgs e)
-        {
-            if (e?.Value != null && int.TryParse(e.Value.ToString(), out var result))
-            {
-                selectedEndSubtitleTime = result;
-            }
-            else
-            {
-                _logger.LogWarning("HandleEndSubtitleChange received a null or invalid ChangeEventArgs.");
-            }
-        }
-
-        private void HandleStartSubtitleTimeChange(ChangeEventArgs e)
-        {
-            if (TimeSpan.TryParseExact(e?.Value?.ToString(), @"hh\:mm\:ss\:fff", CultureInfo.InvariantCulture, out var time))
-            {
-                selectedStartSubtitleTime = (int)time.TotalMilliseconds;
-                startSubtitleTimeString = FormatTimeSpanAsString(time);
-            }
-            else
-            {
-                _logger.LogWarning("Invalid start time format entered.");
-                errorMessage = "Please enter a valid time in the format HH:mm:ss:fff.";
-            }
-        }
-
-        private void HandleEndSubtitleTimeChange(ChangeEventArgs e)
-        {
-            if (TimeSpan.TryParseExact(e?.Value?.ToString(), @"hh\:mm\:ss\:fff", CultureInfo.InvariantCulture, out var time))
-            {
-                selectedEndSubtitleTime = (int)time.TotalMilliseconds;
-                endSubtitleTimeString = FormatTimeSpanAsString(time);
-            }
-            else
-            {
-                _logger.LogWarning("Invalid end time format entered.");
-                errorMessage = "Please enter a valid time in the format HH:mm:ss:fff.";
-            }
-        }
-
-        private string FormatTimeSpanAsString(TimeSpan timeSpan)
-        {
-            return timeSpan.ToString(@"hh\:mm\:ss\:fff");
-        }
-
         private async Task setSubtitles()
         {
             if (!string.IsNullOrEmpty(selectedEpisode))
@@ -423,19 +332,22 @@ else
                 try
                 {
                     await PlexService.DeleteSubtitleFilesAsync();
-                    if (int.TryParse(selectedSubtitleOptionKey, out int index))
+                    var chosenSubtitleOption = subtitleOptions?.FirstOrDefault(sub => sub?.Key == selectedSubtitleOptionKey);
+                    if (chosenSubtitleOption != null)
                     {
-                        isExtracting = true;
-                        StateHasChanged();
-                        subtitles = await PlexService.ExtractSubtitles(selectedEpisode, subtitleOptions?.FirstOrDefault(sub => sub?.Key == selectedSubtitleOptionKey));
-                    }
-                    else if (selectedSubtitleOptionKey != null)
-                    {
-                        subtitles = await PlexService.GetActualSubtitlesAsync(selectedEpisode, subtitleOptions?.FirstOrDefault(sub => sub?.Key == selectedSubtitleOptionKey));
+                        if (int.TryParse(selectedSubtitleOptionKey, out int index))
+                        {
+                            isExtracting = true;
+                            StateHasChanged();
+                            subtitles = await PlexService.ExtractSubtitles(selectedEpisode, chosenSubtitleOption);
+                        }
+                        else
+                        {
+                            subtitles = await PlexService.GetActualSubtitlesAsync(selectedEpisode, chosenSubtitleOption);
+                        }
                     }
 
                     totalDuration = await PlexService.GetEpisodeDurationAsync(selectedEpisode);
-                    totalDurationInSeconds = (float)totalDuration.TotalSeconds;
 
                     _logger.LogInformation($"Fetched {subtitles?.Count} subtitles for episode {selectedEpisode}");
                     if (subtitles?.Count == 0)
@@ -493,7 +405,6 @@ else
                 {
                     selectedLibraryKey = currentlyPlaying.LibraryId;
                     await HandleLibraryChange(selectedLibraryKey);
-                    await Task.Delay(100); // Small delay to allow state to update
                 }
 
                 // For TV shows, set the show
@@ -501,7 +412,6 @@ else
                 {
                     selectedShowKey = currentlyPlaying.ShowId;
                     await HandleShowChange(selectedShowKey);
-                    await Task.Delay(100); // Small delay to allow state to update
                 }
 
                 // Set the episode
@@ -509,20 +419,53 @@ else
                 {
                     selectedEpisode = currentlyPlaying.EpisodeId;
                     await HandleEpisodeChange(selectedEpisode);
-                    await Task.Delay(100); // Small delay to allow state to update
                 }
 
+                // Match the Plex-selected subtitle stream to the loaded subtitle options
+                if (currentlyPlaying.CurrentSubtitle != null && subtitleOptions != null && subtitleOptions.Any())
+                {
+                    var matchedSubtitle = subtitleOptions.FirstOrDefault(s =>
+                        s != null &&
+                        ((!string.IsNullOrEmpty(s.Id) && s.Id == currentlyPlaying.CurrentSubtitle.Id) ||
+                         (!string.IsNullOrEmpty(s.Key) && s.Key == currentlyPlaying.CurrentSubtitle.Key) ||
+                         (s.Language == currentlyPlaying.CurrentSubtitle.Language && s.DisplayTitle == currentlyPlaying.CurrentSubtitle.DisplayTitle)));
+
+                    if (matchedSubtitle?.Key != null)
+                    {
+                        selectedSubtitleOptionKey = matchedSubtitle.Key;
+                        _logger.LogInformation("Auto-selecting subtitle stream: {DisplayTitle} (Key: {Key})",
+                            matchedSubtitle.DisplayTitle, matchedSubtitle.Key);
+                        await HandleSubtitleOptionChange(matchedSubtitle.Key);
+                    }
+                }
 
                 // Set the subtitle times based on current playback position
-                if (currentlyPlaying.ViewOffset > 0 && gifCreatorRef != null)
+                if (currentlyPlaying.ViewOffset > 0)
                 {
-                    // Calculate start time: current position minus 10 seconds (10000 ms)
+                    await Task.Delay(100);
+                    if (gifCreatorRef == null)
+                    {
+                        _logger.LogWarning("Unable to autofill subtitle times because the GIF creator is not rendered.");
+                    }
+                    else
+                    {
                     int startTime = Math.Max(0, currentlyPlaying.ViewOffset - 10000);
-                    // Set end time to current position
                     int endTime = currentlyPlaying.ViewOffset;
-                    
-                    _logger.LogInformation("Setting subtitle times: Start={StartTime}ms, End={EndTime}ms", startTime, endTime);
+
+                    var activeSubtitle = subtitles?.FirstOrDefault(s =>
+                        s.StartTime <= currentlyPlaying.ViewOffset && s.EndTime >= currentlyPlaying.ViewOffset)
+                        ?? subtitles?.OrderBy(s => Math.Abs(s.StartTime - currentlyPlaying.ViewOffset)).FirstOrDefault();
+
+                    if (activeSubtitle != null)
+                    {
+                        startTime = activeSubtitle.StartTime;
+                        endTime = activeSubtitle.EndTime;
+                        _logger.LogInformation("Auto-selected subtitle item: {Subtitle} (Start={StartTime}ms, End={EndTime}ms)",
+                            activeSubtitle.ToString(), startTime, endTime);
+                    }
+
                     gifCreatorRef.SetSubtitleTimes(startTime, endTime);
+                    }
                 }
 
                 successMessage = $"Successfully auto-detected: {currentlyPlaying.EpisodeTitle ?? "media"}";

@@ -96,16 +96,19 @@ namespace PlexGifMaker.Data
             string outputPath,
             (string? Arguments, string OutputMap) filter)
         {
-            var filterGraph = filter.Arguments == null
+            var videoFilter = filter.Arguments == null
                 ? "fps=20,scale=400:-1:flags=lanczos"
                 : ExtractFilterGraph(filter.Arguments);
+
+            var filterGraph = $"{videoFilter},split=2[gif_video][gif_palette];[gif_palette]palettegen=max_colors=256:stats_mode=full[p];[gif_video][p]paletteuse=dither=floyd_steinberg:diff_mode=rectangle[out]";
 
             var arguments = new List<string>
             {
                 "-report -v debug",
-                $"-ss {startTime} -t {duration}",
                 $"-i \"{videoFile}\"",
-                $"-lavfi \"{filterGraph},split[s0][s1];[s0]palettegen=max_colors=256:stats_mode=full[p];[s1][p]paletteuse=dither=floyd_steinberg:diff_mode=rectangle\"",
+                $"-ss {startTime} -t {duration}",
+                $"-filter_complex \"{filterGraph}\"",
+                "-map \"[out]\"",
                 $"\"{outputPath}\""
             };
 
@@ -117,7 +120,7 @@ namespace PlexGifMaker.Data
             const string lavfiPrefix = "-lavfi \"";
             if (filterArguments.StartsWith(lavfiPrefix, StringComparison.Ordinal) && filterArguments.EndsWith("[v]\"", StringComparison.Ordinal))
             {
-                return filterArguments[lavfiPrefix.Length..^3];
+                return filterArguments[lavfiPrefix.Length..^4];
             }
 
             const string videoFilterPrefix = "-vf \"";

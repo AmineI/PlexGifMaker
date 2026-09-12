@@ -17,7 +17,7 @@
 {
     <div class="form-group">
         <label for="startSubtitle">Start Subtitle: </label>
-        <select class="form-control" id="startSubtitle" @onchange="HandleStartSubtitleChange">
+        <select class="form-control" id="startSubtitle" value="@selectedStartSubtitleTime" @onchange="HandleStartSubtitleChange">
             <option value="">Select a start subtitle</option>
             @foreach (var subtitle in Subtitles)
             {
@@ -26,11 +26,11 @@
         </select>
     </div>
 
-    @if (SelectedFormat != "png")
+    @if (selectedFormat != "png")
     {
         <div class="form-group">
             <label for="endSubtitle">End Subtitle: </label>
-            <select class="form-control" id="endSubtitle" @onchange="HandleEndSubtitleChange">
+            <select class="form-control" id="endSubtitle" value="@selectedEndSubtitleTime" @onchange="HandleEndSubtitleChange">
                 <option value="">Select an end subtitle</option>
             @foreach (var subtitle in Subtitles)
                 {
@@ -49,7 +49,7 @@
              style="width: @GetStartWidthPercentage()"
              aria-valuenow="@(selectedStartSubtitleTime / 1000.0)" aria-valuemin="0" aria-valuemax="@TotalDuration.TotalSeconds">
         </div>
-           @if (SelectedFormat != "png")
+           @if (selectedFormat != "png")
            {
               <div class="progress-bar bg-warning" role="progressbar" style="width: @GetDurationWidthPercentage()"
                   aria-valuenow="@((selectedEndSubtitleTime - selectedStartSubtitleTime) / 1000.0)"
@@ -64,7 +64,7 @@
     <label for="startSubtitleTime">Start Time (HH:mm:ss:fff):</label>
     <input type="text" id="startSubtitleTime" value="@startSubtitleTimeString" @oninput="HandleStartSubtitleTimeChange" class="form-control" />
 
-    @if (SelectedFormat != "png")
+    @if (selectedFormat != "png")
     {
         <label for="endSubtitleTime">End Time (HH:mm:ss:fff):</label>
         <input type="text" id="endSubtitleTime" value="@endSubtitleTimeString" @oninput="HandleEndSubtitleTimeChange" class="form-control" />
@@ -72,7 +72,7 @@
 </div>
 
 <button class="btn btn-primary mt-3" @onclick="OnCreateGifClicked" disabled="@IsCreatingGif">
-    @(SelectedFormat == "png" ? "Take Screenshot" : "Create Clip")
+    @(selectedFormat == "png" ? "Take Screenshot" : "Create Clip")
 </button>
 
 @if (IsExtracting)
@@ -82,9 +82,9 @@
 
 @if (!string.IsNullOrEmpty(GifPath))
 {
-    @if (SelectedFormat is "gif" or "png")
+    @if (selectedFormat is "gif" or "png")
     {
-        <img src="@GifPath" class="img-fluid" alt="Generated @(SelectedFormat == "png" ? "screenshot" : "GIF")" style="width: 100%;" />
+        <img src="@GifPath" class="img-fluid" alt="Generated @(selectedFormat == "png" ? "screenshot" : "GIF")" style="width: 100%;" />
     }
     else
     {
@@ -111,9 +111,6 @@ else if (IsCreatingGif)
     public TimeSpan TotalDuration { get; set; }
 
     [Parameter]
-    public string SelectedFormat { get; set; } = "mp4";
-
-    [Parameter]
     public EventCallback<(int startTime, int endTime, string format)> OnCreateGif { get; set; }
 
     [Parameter]
@@ -127,6 +124,7 @@ else if (IsCreatingGif)
 
     private int selectedStartSubtitleTime;
     private int selectedEndSubtitleTime;
+    private string selectedFormat = "mp4";
     private float totalDurationInSeconds;
     private string startSubtitleTimeString = "00:00:00:000";
     private string endSubtitleTimeString = "00:00:00:000";
@@ -151,7 +149,7 @@ else if (IsCreatingGif)
 
     private async Task OnCreateGifClicked()
     {
-        await OnCreateGif.InvokeAsync((selectedStartSubtitleTime, selectedEndSubtitleTime, SelectedFormat));
+        await OnCreateGif.InvokeAsync((selectedStartSubtitleTime, selectedEndSubtitleTime, selectedFormat));
     }
 
     private void HandleStartSubtitleChange(ChangeEventArgs e)
@@ -192,7 +190,7 @@ else if (IsCreatingGif)
 
     private void HandleOutputFormatChange(ChangeEventArgs e)
     {
-        SelectedFormat = e?.Value?.ToString() ?? "mp4";
+        selectedFormat = e?.Value?.ToString() ?? "mp4";
     }
 
     private string FormatTimeSpanAsString(TimeSpan timeSpan)

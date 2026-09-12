@@ -38,10 +38,36 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
                 "gif",
                 (null, "0:v:0"));
 
-            Assert.Contains("fps=20,scale=400:-1:flags=lanczos,split[s0][s1]", command);
+            Assert.Contains("fps=20,scale=400:-1:flags=lanczos,split=2[gif_video][gif_palette]", command);
             Assert.Contains("palettegen=max_colors=256:stats_mode=full[p]", command);
-            Assert.Contains("paletteuse=dither=floyd_steinberg:diff_mode=rectangle", command);
+            Assert.Contains("[gif_video][p]paletteuse=dither=floyd_steinberg:diff_mode=rectangle[out]", command);
+            Assert.Contains("-map \"[out]\"", command);
+            Assert.Contains("-i \"http://plex.test/video.mkv\" -ss 00:00:10 -t 00:00:05", command);
             Assert.DoesNotContain("-map 0:a", command);
+        }
+
+        [Fact]
+        public void BuildFfmpegCommand_UsesComplexFilterForGifOutputWithSubtitles()
+        {
+            var subtitleFile = CreateSubtitleFile("srt");
+            var subtitle = new Subtitle { Codec = "srt", Key = "/library/streams/2" };
+            var escapedPath = subtitleFile.Replace("\\", "\\\\");
+            var filter = FfmpegCommandBuilder.BuildVideoFilter(subtitle, "gif", subtitleDirectory.FullName, TimeSpan.FromSeconds(10));
+
+            var command = FfmpegCommandBuilder.BuildFfmpegCommand(
+                "http://plex.test/video.mkv",
+                TimeSpan.FromSeconds(10),
+                TimeSpan.FromSeconds(5),
+                "wwwroot/gifs/clip.gif",
+                "gif",
+                filter);
+
+            Assert.Contains("-filter_complex", command);
+            Assert.Contains("subtitles='" + escapedPath + "':force_style='Fontsize=24'", command);
+            Assert.DoesNotContain("[v],split", command);
+            Assert.Contains("split=2[gif_video][gif_palette]", command);
+            Assert.Contains("[gif_video][p]paletteuse=dither=floyd_steinberg:diff_mode=rectangle[out]", command);
+            Assert.Contains("-map \"[out]\"", command);
         }
 
         [Theory]
@@ -62,8 +88,8 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
             if (format == "gif")
             {
                 Assert.Contains("[0:v]hflip", command);
-                Assert.Contains("split[s0][s1]", command);
-                Assert.Contains("paletteuse=dither=floyd_steinberg:diff_mode=rectangle", command);
+                Assert.Contains("split=2[gif_video][gif_palette]", command);
+                Assert.Contains("[gif_video][p]paletteuse=dither=floyd_steinberg:diff_mode=rectangle[out]", command);
             }
             else
             {
