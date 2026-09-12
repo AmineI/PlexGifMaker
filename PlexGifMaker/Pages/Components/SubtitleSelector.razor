@@ -7,7 +7,7 @@
         @foreach (var subtitle in SubtitleOptions.Select((value, index) => new { Value = value, Index = index }))
         {
             <option value="@(string.IsNullOrEmpty(subtitle?.Value?.Key) ? subtitle?.Index.ToString() : subtitle.Value.Key)">
-                @subtitle?.Value?.Language - @subtitle?.Value?.DisplayTitle
+                @subtitle?.Value?.DisplayTitle@(string.IsNullOrWhiteSpace(subtitle?.Value?.Title) ? string.Empty : $" - {subtitle.Value.Title}")
             </option>
         }
     </select>

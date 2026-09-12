@@ -202,7 +202,8 @@ namespace PlexGifMaker.Data
                                 Language = node.Attributes?["language"]?.Value ?? "Unknown",
                                 Key = node.Attributes?["key"]?.Value ?? index++.ToString(),
                                 Codec = node.Attributes?["codec"]?.Value ?? "Unknown",
-                                DisplayTitle = node.Attributes?["displayTitle"]?.Value ?? "Unknown"
+                                DisplayTitle = node.Attributes?["displayTitle"]?.Value ?? "Unknown",
+                                Title = node.Attributes?["title"]?.Value
                             };
                             subtitles.Add(subtitle);
                         }
@@ -270,9 +271,7 @@ namespace PlexGifMaker.Data
                     var subtitleFormat = subtitle.Codec?.ToLower() ?? "srt";
                     var subtitleFilePath = Path.Combine(subtitlePath, $"subtitle.{subtitleFormat}");
                     File.WriteAllText(subtitleFilePath, content);
-                    var parser = new SubtitlesParser.Classes.Parsers.SubParser();
-                    using var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
-                    var items = parser.ParseStream(stream);
+                    var items = ParseSubtitles(content, subtitle.Codec);
 
                     if (items == null)
                     {
@@ -298,6 +297,22 @@ namespace PlexGifMaker.Data
                 _logger.LogError(ex, "An error occurred while fetching subtitles for episode {EpisodeId}", episodeId);
                 throw;
             }
+        }
+
+        internal static List<SubtitleItem> ParseSubtitles(string content, string? codec)
+        {
+            if (string.Equals(codec, "ass", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(codec, "ssa", StringComparison.OrdinalIgnoreCase))
+            {
+                var extradataIndex = content.IndexOf("[Aegisub Extradata]", StringComparison.OrdinalIgnoreCase);
+                if (extradataIndex >= 0)
+                {
+                    content = content[..extradataIndex];
+                }
+            }
+
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
+            return new SubtitlesParser.Classes.Parsers.SubParser().ParseStream(stream);
         }
 
         public async Task<string?> CreateGifFromSubtitlesAsync(string episodeId, int startSubtitleTime, int endSubtitleTime, string format, Subtitle? subtitle = null)
@@ -684,15 +699,14 @@ namespace PlexGifMaker.Data
                 
             }
             // Parsing the subtitle file
-            try{
-                if (File.Exists(outputFilePath))
+            try
             {
-                using StreamReader sr = new(outputFilePath);
-                var content2 = await sr.ReadToEndAsync();
-                var parser = new SubtitlesParser.Classes.Parsers.SubParser();
-                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(content2));
-                items = parser.ParseStream(stream);
-            }
+                if (File.Exists(outputFilePath))
+                {
+                    using StreamReader sr = new(outputFilePath);
+                    var subtitleContent = await sr.ReadToEndAsync();
+                    items = ParseSubtitles(subtitleContent, subtitleFormat);
+                }
             }
             catch (Exception ex)
             {
@@ -880,7 +894,8 @@ namespace PlexGifMaker.Data
                 Language = subtitleNode.Attributes?["language"]?.Value ?? "Unknown",
                 Key = subtitleNode.Attributes?["key"]?.Value ?? subtitleNode.Attributes?["index"]?.Value,
                 Codec = subtitleNode.Attributes?["codec"]?.Value ?? "Unknown",
-                DisplayTitle = subtitleNode.Attributes?["displayTitle"]?.Value ?? "Unknown"
+                DisplayTitle = subtitleNode.Attributes?["displayTitle"]?.Value ?? "Unknown",
+                Title = subtitleNode.Attributes?["title"]?.Value
             };
         }
 
@@ -942,6 +957,7 @@ namespace PlexGifMaker.Data
         public string? Language { get; set; }
         public string? Key { get; set; }
         public string? DisplayTitle { get; set; }
+        public string? Title { get; set; }
         public string? Codec { get; set; }
     }
 

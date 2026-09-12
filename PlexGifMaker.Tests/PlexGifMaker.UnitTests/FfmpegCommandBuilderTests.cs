@@ -121,6 +121,20 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
             Assert.Equal("[v]", filter.OutputMap);
         }
 
+        [Fact]
+        public void BuildVideoFilter_PngTextSubtitlesWithFractionalStartTime_FormatsSetptsWithInvariantDecimal()
+        {
+            var subtitleFile = CreateSubtitleFile("srt");
+            var subtitle = new Subtitle { Codec = "srt", Key = "/library/streams/2" };
+            var escapedPath = subtitleFile.Replace("\\", "\\\\");
+            var startTime = TimeSpan.FromMilliseconds(10100); // 10.1 seconds (+100ms offset)
+
+            var filter = FfmpegCommandBuilder.BuildVideoFilter(subtitle, "png", subtitleDirectory.FullName, startTime);
+
+            Assert.Equal($"-lavfi \"setpts=PTS+10.1/TB,subtitles='{escapedPath}'[v]\"", filter.Arguments);
+            Assert.Equal("[v]", filter.OutputMap);
+        }
+
         [Theory]
         [InlineData("mp4", "-lavfi \"[0:v][0:s:2]overlay[v]\"")]
         [InlineData("gif", "-lavfi \"[0:v][0:s:2]overlay,fps=20,scale=400:-1:flags=lanczos[v]\"")]
