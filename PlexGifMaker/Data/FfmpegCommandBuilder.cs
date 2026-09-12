@@ -87,7 +87,7 @@ namespace PlexGifMaker.Data
             {
                 "gif" => "-c:v gif",
                 "png" => "-frames:v 1 -c:v png",
-                _ => "-map 0:a? -c:a copy -c:v libx264 -threads 1 -pix_fmt yuv420p"
+                _ => "-map 0:a? -c:a aac -b:a 192k -c:v libx264 -threads 1 -pix_fmt yuv420p"
             });
             arguments.Add($"\"{outputPath}\"");
 

@@ -8,7 +8,7 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
         private readonly DirectoryInfo subtitleDirectory = Directory.CreateTempSubdirectory("plexgifmaker-tests-");
 
         [Theory]
-        [InlineData("mp4", "-map 0:a? -c:a copy -c:v libx264 -threads 1 -pix_fmt yuv420p")]
+        [InlineData("mp4", "-map 0:a? -c:a aac -b:a 192k -c:v libx264 -threads 1 -pix_fmt yuv420p")]
         [InlineData("png", "-frames:v 1 -c:v png")]
         public void BuildFfmpegCommand_UsesMp4AndPngEncodingOptions(
             string format, string expectedEncoding)
@@ -131,7 +131,7 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
                 (null, "0:v:0"));
 
             Assert.Equal(
-                $"{CommonOptions} -i \"media/source video.mkv\" -ss 00:00:10.2500000 -t 00:00:01.5000000 -map 0:v:0 -map 0:a? -c:a copy -c:v libx264 -threads 1 -pix_fmt yuv420p \"output/my clip.mp4\"",
+                $"{CommonOptions} -i \"media/source video.mkv\" -ss 00:00:10.2500000 -t 00:00:01.5000000 -map 0:v:0 -map 0:a? -c:a aac -b:a 192k -c:v libx264 -threads 1 -pix_fmt yuv420p \"output/my clip.mp4\"",
                 command);
         }
 
