@@ -809,6 +809,7 @@ namespace PlexGifMaker.Data
                             var grandparentRatingKey = selectedNode.Attributes?["grandparentRatingKey"]?.Value;
                             var grandparentTitle = selectedNode.Attributes?["grandparentTitle"]?.Value;
                             var viewOffsetStr = selectedNode.Attributes?["viewOffset"]?.Value;
+                            var currentSubtitle = ParseSelectedSubtitle(selectedNode);
 
                             if (!string.IsNullOrEmpty(ratingKey))
                             {
@@ -831,7 +832,9 @@ namespace PlexGifMaker.Data
                                     LibraryId = librarySectionID,
                                     ShowId = grandparentRatingKey,
                                     ShowTitle = grandparentTitle,
-                                    ViewOffset = viewOffset
+                                    ViewOffset = viewOffset,
+                                    CurrentTime = TimeSpan.FromMilliseconds(viewOffset),
+                                    CurrentSubtitle = currentSubtitle
                                 };
                             }
                         }
@@ -861,6 +864,24 @@ namespace PlexGifMaker.Data
                 _logger.LogError(ex, "Unexpected error while fetching currently playing media");
                 throw;
             }
+        }
+
+        private static Subtitle? ParseSelectedSubtitle(XmlNode videoNode)
+        {
+            var subtitleNode = videoNode.SelectSingleNode(".//Stream[@streamType='3' and @selected='1']");
+            if (subtitleNode == null)
+            {
+                return null;
+            }
+
+            return new Subtitle
+            {
+                Id = subtitleNode.Attributes?["id"]?.Value ?? string.Empty,
+                Language = subtitleNode.Attributes?["language"]?.Value ?? "Unknown",
+                Key = subtitleNode.Attributes?["key"]?.Value ?? subtitleNode.Attributes?["index"]?.Value,
+                Codec = subtitleNode.Attributes?["codec"]?.Value ?? "Unknown",
+                DisplayTitle = subtitleNode.Attributes?["displayTitle"]?.Value ?? "Unknown"
+            };
         }
 
         private async Task<string?> GetCurrentUserIdAsync()
@@ -941,5 +962,7 @@ namespace PlexGifMaker.Data
         public string? ShowId { get; set; }
         public string? ShowTitle { get; set; }
         public int ViewOffset { get; set; } // Current playback position in milliseconds
+        public TimeSpan CurrentTime { get; set; }
+        public Subtitle? CurrentSubtitle { get; set; }
     }
 }

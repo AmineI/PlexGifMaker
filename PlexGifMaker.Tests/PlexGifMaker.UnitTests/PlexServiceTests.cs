@@ -120,6 +120,14 @@ namespace PlexGifMaker.Tests.PlexGifMaker.UnitTests
             Assert.Equal("2", currentlyPlaying.LibraryId);
             Assert.Equal("8405", currentlyPlaying.ShowId);
             Assert.Equal("The 10th Kingdom", currentlyPlaying.ShowTitle);
+            Assert.Equal(123456, currentlyPlaying.ViewOffset);
+            Assert.Equal(TimeSpan.FromMilliseconds(123456), currentlyPlaying.CurrentTime);
+            Assert.NotNull(currentlyPlaying.CurrentSubtitle);
+            Assert.Equal("36868", currentlyPlaying.CurrentSubtitle.Id);
+            Assert.Equal("srt", currentlyPlaying.CurrentSubtitle.Codec);
+            Assert.Equal("English", currentlyPlaying.CurrentSubtitle.Language);
+            Assert.Equal("English (SRT)", currentlyPlaying.CurrentSubtitle.DisplayTitle);
+            Assert.Equal("/library/streams/36868", currentlyPlaying.CurrentSubtitle.Key);
 
             // Verify the correct URL was called
             PlexServiceTestsHelpers.VerifyMockHttpMessageHandler(handlerMock, expectedUri);

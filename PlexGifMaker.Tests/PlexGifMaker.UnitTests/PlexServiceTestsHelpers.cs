@@ -71,10 +71,11 @@ internal static class PlexServiceTestsHelpers
 ";
     public const string SessionsContent = @"<?xml version=""1.0"" encoding=""UTF-8""?>
 <MediaContainer size=""1"">
-<Video ratingKey=""8407"" key=""/library/metadata/8407"" parentRatingKey=""8406"" grandparentRatingKey=""8405"" type=""episode"" title=""Part 1"" grandparentKey=""/library/metadata/8405"" parentKey=""/library/metadata/8406"" librarySectionTitle=""TV Shows"" librarySectionID=""2"" grandparentTitle=""The 10th Kingdom"" parentTitle=""Season 1"" contentRating=""TV-PG"" duration=""5368532"">
+<Video ratingKey=""8407"" key=""/library/metadata/8407"" parentRatingKey=""8406"" grandparentRatingKey=""8405"" type=""episode"" title=""Part 1"" grandparentKey=""/library/metadata/8405"" parentKey=""/library/metadata/8406"" librarySectionTitle=""TV Shows"" librarySectionID=""2"" grandparentTitle=""The 10th Kingdom"" parentTitle=""Season 1"" contentRating=""TV-PG"" duration=""5368532"" viewOffset=""123456"">
 <User id=""1"" title=""testuser"" />
 <Player local=""1"" publicAddress=""192.168.1.100"" title=""Chrome"" />
 <Session id=""session1"" />
+<Media><Part><Stream id=""36868"" streamType=""3"" selected=""1"" codec=""srt"" language=""English"" displayTitle=""English (SRT)"" key=""/library/streams/36868"" /></Part></Media>
 </Video>
 </MediaContainer>";
     public const string EmptySessionsContent = @"<?xml version=""1.0"" encoding=""UTF-8""?>
