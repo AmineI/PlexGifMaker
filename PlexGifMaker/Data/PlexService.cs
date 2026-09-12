@@ -388,7 +388,7 @@ namespace PlexGifMaker.Data
             var outputPath = Path.Combine("wwwroot", "gifs", outputFilename);
             outputPath = EnsureUniqueFilename(outputPath);
 
-            var filter = FfmpegCommandBuilder.BuildVideoFilter(subtitle, format, subtitlePath);
+            var filter = FfmpegCommandBuilder.BuildVideoFilter(subtitle, format, subtitlePath, startTime);
             var ffmpegCommand = FfmpegCommandBuilder.BuildFfmpegCommand(videoFile, startTime, duration, outputPath, format, filter);
 
             _logger.LogInformation("Executing FFmpeg command: {FfmpegCommand}", ffmpegCommand);

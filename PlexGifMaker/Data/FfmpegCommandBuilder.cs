@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace PlexGifMaker.Data
 {
     internal static class FfmpegCommandBuilder
@@ -10,7 +12,8 @@ namespace PlexGifMaker.Data
         internal static (string? Arguments, string OutputMap) BuildVideoFilter(
             Subtitle? subtitle,
             string format,
-            string subtitlePath)
+            string subtitlePath,
+            TimeSpan startTime)
         {
             var isGif = format == "gif";
             if (subtitle == null)
@@ -34,7 +37,10 @@ namespace PlexGifMaker.Data
             {
                 var escapedSubtitleFile = subtitleFile.Replace("\\", "\\\\");
                 var style = isGif ? ":force_style='Fontsize=24'" : string.Empty;
-                filterGraph = $"subtitles='{escapedSubtitleFile}'{style}";
+                var timestampOffset = format == "png"
+                    ? $"setpts=PTS+{startTime.TotalSeconds.ToString("0.#######", CultureInfo.InvariantCulture)}/TB,"
+                    : string.Empty;
+                filterGraph = $"{timestampOffset}subtitles='{escapedSubtitleFile}'{style}";
             }
 
             if (isGif)
@@ -55,10 +61,10 @@ namespace PlexGifMaker.Data
         {
             var arguments = new List<string>
             {
-                $"-report -v debug -i \"{videoFile}\"",
                 format == "png"
-                    ? $"-ss {startTime}"
-                    : $"-ss {startTime} -t {duration}"
+                    ? $"-report -v debug -ss {startTime} -i \"{videoFile}\""
+                    : $"-report -v debug -i \"{videoFile}\"",
+                format == "png" ? string.Empty : $"-ss {startTime} -t {duration}"
             };
 
             if (filter.Arguments != null)
@@ -75,7 +81,7 @@ namespace PlexGifMaker.Data
             });
             arguments.Add($"\"{outputPath}\"");
 
-            return string.Join(' ', arguments);
+            return string.Join(' ', arguments.Where(argument => !string.IsNullOrWhiteSpace(argument)));
         }
     }
 }
